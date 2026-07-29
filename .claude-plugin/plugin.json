@@ -4,6 +4,7 @@
   "description": "Agent-provisioned backend infrastructure via Cohesivity (cohesivity.ai): Postgres, Redis, object and vector storage, hosting, auth, realtime, an agent-native email inbox, a managed browser, and AI model APIs over one HTTP API. Ephemeral tenants are free and need no signup; durable and paid actions are consent gates.",
   "author": {
     "name": "Cohesivity",
+    "email": "smj@cohesivity.ai",
     "url": "https://cohesivity.ai"
   },
   "homepage": "https://cohesivity.ai",

@@ -3,7 +3,7 @@ name: cohesivity
 description: "Provision and manage backend infra through Cohesivity (cohesivity.ai): Postgres, hosting, auth, storage, and AI model APIs over one api. Use when a project needs a backend or a .cohesivity file exists. Trigger with 'add login', 'I need a database', or 'deploy this'."
 allowed-tools: Read, Bash(curl:*), Bash(grep:*), Bash(mktemp:*), Bash(ln:*), Bash(git:*)
 version: 1.0.0
-author: Cohesivity
+author: Cohesivity <smj@cohesivity.ai>
 license: MIT
 compatibility: "Claude Code, Cursor, Codex, OpenClaw, and Hermes, or any agent that loads Agent Skills. Requires a shell with curl and outbound network access to cohesivity.ai. No local runtime, database, or cloud account is needed."
 tags: [backend, infrastructure, database, hosting, auth]
