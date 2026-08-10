@@ -675,7 +675,7 @@ function projectTenantStatus(value) {
   output.resources = value.resources.slice(0, 200).flatMap((entry) => {
     if (!isRecord(entry)) return [];
     const projected = {};
-    for (const key of ["name", "resource", "service"]) {
+    for (const key of ["name", "resource", "resource_name", "service"]) {
       if (
         typeof entry[key] === "string" &&
         entry[key].length <= 80 &&

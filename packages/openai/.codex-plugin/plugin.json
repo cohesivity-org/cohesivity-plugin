@@ -1,6 +1,6 @@
 {
   "name": "cohesivity",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
   "author": {
     "name": "Cohesivity",

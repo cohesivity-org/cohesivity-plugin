@@ -449,7 +449,7 @@ test("management tools use fixed API routes and redact credential-bearing respon
   }
 });
 
-test("tenant status preserves safe resource names without exposing resource details", async () => {
+test("tenant status preserves the API resource_name without exposing resource details", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-status-projection-"));
   writeFileSync(
     join(temporaryRoot, ".cohesivity"),
@@ -463,7 +463,7 @@ test("tenant status preserves safe resource names without exposing resource deta
       JSON.stringify({
         resources: [
           {
-            service: "postgres",
+            resource_name: "postgres",
             status: "active",
             credential: "coh_app_abcdefghij1234567890",
             deployment_url: "https://private.example/capability",
@@ -483,7 +483,7 @@ test("tenant status preserves safe resource names without exposing resource deta
     );
     assert.deepEqual(output, {
       tenant_id: "swift-fox-running",
-      status: { resources: [{ service: "postgres", status: "active" }] },
+      status: { resources: [{ resource_name: "postgres", status: "active" }] },
     });
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
