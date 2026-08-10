@@ -1,0 +1,11 @@
+{
+  "name": "cohesivity-plugin-packages",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-packages.mjs",
+    "check": "node scripts/build-packages.mjs --check",
+    "test": "node --test"
+  }
+}
