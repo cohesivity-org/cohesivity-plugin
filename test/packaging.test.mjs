@@ -449,6 +449,47 @@ test("management tools use fixed API routes and redact credential-bearing respon
   }
 });
 
+test("tenant status preserves safe resource names without exposing resource details", async () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-status-projection-"));
+  writeFileSync(
+    join(temporaryRoot, ".cohesivity"),
+    "tenant_id=swift-fox-running\ncoh_management_key=coh_man_1234567890abcdefghij\n",
+  );
+  const fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    text: async () =>
+      JSON.stringify({
+        resources: [
+          {
+            service: "postgres",
+            status: "active",
+            credential: "coh_app_abcdefghij1234567890",
+            deployment_url: "https://private.example/capability",
+            connection_string: "postgresql://private.example/database",
+            provider: { name: "private-provider", project_id: "private-project" },
+            input: { arbitrary: { nested: "private-input" } },
+          },
+        ],
+      }),
+  });
+
+  try {
+    const output = await callTool(
+      "tenant_status",
+      { project_root: temporaryRoot },
+      { fetch },
+    );
+    assert.deepEqual(output, {
+      tenant_id: "swift-fox-running",
+      status: { resources: [{ service: "postgres", status: "active" }] },
+    });
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
 test("MCP exposes only strict named tools and never a shell or generic API proxy", async () => {
   const response = await handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   const tools = response.result.tools;

@@ -37,7 +37,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-const SERVER_VERSION = "2.1.0";
+const SERVER_VERSION = "2.1.1";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_QUICKSTART_BYTES = 1024 * 1024;
@@ -46,6 +46,8 @@ const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
 const SECRET_VALUE = /(?:coh_(?:man|app)_[a-z0-9]+|Bearer\s+[^\s"']+)/gi;
 const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|Bearer\s+[^\s"']+)/i;
 const SECRET_KEY = /(?:authorization|cookie|credential|password|secret|token|(?:^|_)key(?:$|_))/i;
+const SAFE_RESOURCE_IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const SAFE_RESOURCE_STATUS = /^[A-Za-z][A-Za-z0-9._ -]{0,79}$/u;
 const SAFE_API_KEYS = new Set([
   "account",
   "active",
@@ -662,7 +664,42 @@ export function redactApiOutput(value, depth = 0) {
   return output;
 }
 
-async function managementRequest(projectRoot, method, path, body, fetchImpl) {
+function projectTenantStatus(value) {
+  if (!isRecord(value)) return redactApiOutput(value);
+
+  const outer = { ...value };
+  delete outer.resources;
+  const output = redactApiOutput(outer);
+  if (!Array.isArray(value.resources)) return output;
+
+  output.resources = value.resources.slice(0, 200).flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const projected = {};
+    for (const key of ["name", "resource", "service"]) {
+      if (
+        typeof entry[key] === "string" &&
+        entry[key].length <= 80 &&
+        SAFE_RESOURCE_IDENTIFIER.test(entry[key])
+      ) {
+        projected[key] = entry[key];
+      }
+    }
+    if (typeof entry.status === "string" && SAFE_RESOURCE_STATUS.test(entry.status)) {
+      projected.status = entry.status;
+    }
+    return Object.keys(projected).length === 0 ? [] : [projected];
+  });
+  return output;
+}
+
+async function managementRequest(
+  projectRoot,
+  method,
+  path,
+  body,
+  fetchImpl,
+  projectOutput = redactApiOutput,
+) {
   const credentials = readCredentialFields(projectRoot, true);
   const url = new URL(path, MANAGEMENT_API_URL);
   if (url.origin !== new URL(MANAGEMENT_API_URL).origin || !url.pathname.startsWith("/api/")) {
@@ -710,7 +747,7 @@ async function managementRequest(projectRoot, method, path, body, fetchImpl) {
         : "";
     fail(`The Cohesivity Management API returned HTTP ${response.status}${code}.`);
   }
-  return redactApiOutput(document);
+  return projectOutput(document);
 }
 
 export async function callTool(name, argumentsValue, dependencies = {}) {
@@ -759,7 +796,14 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
     const args = exactObject(argumentsValue, ["project_root"]);
     const projectRoot = validateProjectRoot(args.project_root);
     const credentials = readCredentialFields(projectRoot, true);
-    const status = await managementRequest(projectRoot, "GET", "status", undefined, fetchImpl);
+    const status = await managementRequest(
+      projectRoot,
+      "GET",
+      "status",
+      undefined,
+      fetchImpl,
+      projectTenantStatus,
+    );
     return { tenant_id: credentials.tenant_id, status };
   }
 
