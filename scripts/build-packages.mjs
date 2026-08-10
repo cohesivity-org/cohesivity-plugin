@@ -12,7 +12,7 @@ import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-export const VERSION = "2.1.1";
+export const VERSION = "2.1.2";
 export const MCP_ENDPOINT = "https://cohesivity.ai/mcp/manage";
 export const LOCAL_MCP_SOURCE = "mcp/project-bootstrap.mjs";
 export const SKILL_SOURCE_COMMIT = "f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60";
