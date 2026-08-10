@@ -12,17 +12,18 @@ import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-export const VERSION = "2.0.0";
+export const VERSION = "2.1.0";
 export const MCP_ENDPOINT = "https://cohesivity.ai/mcp/manage";
-export const SKILL_SOURCE_COMMIT = "58ee95ac648296e69cac36e7a3eb01f7958e1c1d";
-export const SKILL_VERSION = "4a7bd4890f4c";
+export const LOCAL_MCP_SOURCE = "mcp/project-bootstrap.mjs";
+export const SKILL_SOURCE_COMMIT = "f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60";
+export const SKILL_VERSION = "84fbece3c00b";
 export const SKILL_SHA256 =
-  "83fc0733fa26a8d49499375427f33a279ad186531d1ac6301635034eb78eca88";
+  "3b0d9cda6167263cb35a4e3b54ed455113318a1b24cb5e341f26843456b0b589";
 
 const PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
 const MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
 const DESCRIPTION =
-  "Cohesivity backend infrastructure skill and OAuth-protected management tools.";
+  "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.";
 const AUTHOR = {
   name: "Cohesivity",
   email: "smj@cohesivity.ai",
@@ -75,6 +76,11 @@ export const portableMcp = {
       type: "streamable-http",
       url: MCP_ENDPOINT,
     },
+    "cohesivity-local": {
+      type: "stdio",
+      command: "node",
+      args: [`\${PLUGIN_ROOT}/${LOCAL_MCP_SOURCE}`],
+    },
   },
 };
 
@@ -110,6 +116,11 @@ const claudeMcp = {
       type: "http",
       url: MCP_ENDPOINT,
     },
+    "cohesivity-local": {
+      type: "stdio",
+      command: "node",
+      args: [`\${CLAUDE_PLUGIN_ROOT}/${LOCAL_MCP_SOURCE}`],
+    },
   },
 };
 
@@ -119,7 +130,13 @@ const geminiManifest = {
   description: DESCRIPTION,
   mcpServers: {
     cohesivity: {
-      httpUrl: MCP_ENDPOINT,
+      type: "http",
+      url: MCP_ENDPOINT,
+    },
+    "cohesivity-local": {
+      command: "node",
+      args: ["${extensionPath}${/}mcp${/}project-bootstrap.mjs"],
+      cwd: "${extensionPath}",
     },
   },
 };
@@ -133,6 +150,11 @@ const antigravityMcp = {
   mcpServers: {
     cohesivity: {
       serverUrl: MCP_ENDPOINT,
+    },
+    "cohesivity-local": {
+      command: "node",
+      args: ["${extensionPath}${/}mcp${/}project-bootstrap.mjs"],
+      cwd: "${extensionPath}",
     },
   },
 };
@@ -148,6 +170,34 @@ const openAiMcp = {
     type: "http",
     url: MCP_ENDPOINT,
   },
+  "cohesivity-local": {
+    type: "stdio",
+    command: "node",
+    args: ["./mcp/project-bootstrap.mjs"],
+    cwd: ".",
+  },
+};
+
+const codexMarketplace = {
+  name: "cohesivity",
+  interface: {
+    displayName: "Cohesivity",
+  },
+  plugins: [
+    {
+      name: "cohesivity",
+      source: {
+        source: "local",
+        path: "./plugins/cohesivity",
+      },
+      policy: {
+        installation: "AVAILABLE",
+        authentication: "ON_USE",
+        products: ["CODEX"],
+      },
+      category: "Developer Tools",
+    },
+  ],
 };
 
 function readCanonicalSkill(root = ROOT) {
@@ -158,11 +208,11 @@ function readCanonicalSkill(root = ROOT) {
     sha256(skill) === SKILL_SHA256,
     `canonical skill hash mismatch; expected ${SKILL_SHA256}`,
   );
+  const text = skill.toString("utf8");
+  assert(text.startsWith("---\nname: cohesivity\n"), "canonical skill must carry the cohesivity name");
   assert(
-    skill
-      .toString("utf8")
-      .startsWith(`---\nname: cohesivity\nversion: ${SKILL_VERSION}\n`),
-    `canonical skill must carry version ${SKILL_VERSION}`,
+    new RegExp(`^metadata:\\n  version: "${SKILL_VERSION}"$`, "m").test(text),
+    `canonical skill must carry metadata.version ${SKILL_VERSION}`,
   );
   return skill;
 }
@@ -170,9 +220,11 @@ function readCanonicalSkill(root = ROOT) {
 export function expectedFiles(root = ROOT) {
   const skill = readCanonicalSkill(root);
   const license = readFileSync(resolve(root, "LICENSE"));
+  const localMcp = readFileSync(resolve(root, LOCAL_MCP_SOURCE));
   const files = new Map([
     ["plugin.json", Buffer.from(json(portableManifest))],
     ["mcp.json", Buffer.from(json(portableMcp))],
+    [LOCAL_MCP_SOURCE, localMcp],
   ]);
 
   const wrappers = {
@@ -198,10 +250,19 @@ export function expectedFiles(root = ROOT) {
     const packageRoot = `packages/${client}`;
     files.set(`${packageRoot}/LICENSE`, license);
     files.set(`${packageRoot}/skills/cohesivity/SKILL.md`, skill);
+    files.set(`${packageRoot}/${LOCAL_MCP_SOURCE}`, localMcp);
     for (const [path, contents] of Object.entries(clientFiles)) {
       files.set(`${packageRoot}/${path}`, Buffer.from(contents));
     }
   }
+
+  const codexPluginRoot = "packages/codex/plugins/cohesivity";
+  files.set("packages/codex/.agents/plugins/marketplace.json", Buffer.from(json(codexMarketplace)));
+  files.set(`${codexPluginRoot}/LICENSE`, license);
+  files.set(`${codexPluginRoot}/skills/cohesivity/SKILL.md`, skill);
+  files.set(`${codexPluginRoot}/${LOCAL_MCP_SOURCE}`, localMcp);
+  files.set(`${codexPluginRoot}/.codex-plugin/plugin.json`, Buffer.from(json(openAiManifest)));
+  files.set(`${codexPluginRoot}/.mcp.json`, Buffer.from(json(openAiMcp)));
 
   return files;
 }
@@ -261,13 +322,24 @@ function validatePortableMcp(mcp) {
   assert(isRecord(mcp.mcpServers), "mcp.json mcpServers must be an object");
   for (const [name, server] of Object.entries(mcp.mcpServers)) {
     assert(name.length > 0 && isRecord(server), "mcp.json has an invalid server entry");
-    assert(
-      server.type === "streamable-http" &&
-        hasOnlyKeys(server, ["type", "url", "headers"]),
-      `mcp.json server ${name} is not Streamable HTTP`,
-    );
-    validateEndpoint(server.url, `mcp.json server ${name}`);
-    assert(server.headers === undefined, `mcp.json server ${name} must not package headers`);
+    if (name === "cohesivity") {
+      assert(
+        server.type === "streamable-http" &&
+          hasOnlyKeys(server, ["type", "url", "headers"]),
+        `mcp.json server ${name} is not Streamable HTTP`,
+      );
+      validateEndpoint(server.url, `mcp.json server ${name}`);
+      assert(server.headers === undefined, `mcp.json server ${name} must not package headers`);
+    } else {
+      assert(name === "cohesivity-local", "mcp.json contains an unknown server");
+      assert(
+        server.type === "stdio" &&
+          server.command === "node" &&
+          JSON.stringify(server.args) === JSON.stringify(["${PLUGIN_ROOT}/mcp/project-bootstrap.mjs"]) &&
+          hasOnlyKeys(server, ["type", "command", "args"]),
+        "mcp.json has an invalid local stdio server",
+      );
+    }
   }
 }
 
@@ -282,7 +354,8 @@ function validateNativeArtifacts(files) {
     hasOnlyKeys(gemini, ["name", "version", "description", "mcpServers"]),
     "Gemini manifest contains an unsupported field",
   );
-  validateEndpoint(gemini.mcpServers.cohesivity.httpUrl, "Gemini MCP server");
+  assert(gemini.mcpServers.cohesivity.type === "http", "Gemini remote MCP has the wrong type");
+  validateEndpoint(gemini.mcpServers.cohesivity.url, "Gemini MCP server");
 
   const antigravity = parse("packages/antigravity/plugin.json");
   assert(
@@ -303,12 +376,32 @@ function validateNativeArtifacts(files) {
   assert(openAi.apps === undefined, "OpenAI manifest must not invent an app registration");
   validateEndpoint(parse("packages/openai/.mcp.json").cohesivity.url, "OpenAI MCP server");
 
+  const codexMarketplacePath = "packages/codex/.agents/plugins/marketplace.json";
+  const marketplace = parse(codexMarketplacePath);
+  assert(
+    marketplace.plugins.length === 1 &&
+      marketplace.plugins[0].source.source === "local" &&
+      marketplace.plugins[0].source.path === "./plugins/cohesivity" &&
+      marketplace.plugins[0].policy.authentication === "ON_USE" &&
+      JSON.stringify(marketplace.plugins[0].policy.products) === JSON.stringify(["CODEX"]),
+    "Codex marketplace has an invalid local plugin entry",
+  );
+  const codexPlugin = parse("packages/codex/plugins/cohesivity/.codex-plugin/plugin.json");
+  assert(codexPlugin.skills === "./skills/", "Codex marketplace plugin has the wrong skills path");
+  assert(codexPlugin.mcpServers === "./.mcp.json", "Codex marketplace plugin has the wrong MCP path");
+  assert(codexPlugin.apps === undefined, "Codex marketplace plugin must not invent an app registration");
+  validateEndpoint(
+    parse("packages/codex/plugins/cohesivity/.mcp.json").cohesivity.url,
+    "Codex marketplace MCP server",
+  );
+
   const mcpPaths = [
     "mcp.json",
     "packages/claude/.mcp.json",
     "packages/gemini/gemini-extension.json",
     "packages/antigravity/mcp_config.json",
     "packages/openai/.mcp.json",
+    "packages/codex/plugins/cohesivity/.mcp.json",
   ];
   for (const path of mcpPaths) {
     const contents = files.get(path).toString("utf8");
@@ -328,6 +421,21 @@ export function validateExpectedFiles(files) {
       files.get(`packages/${client}/skills/cohesivity/SKILL.md`).equals(canonical),
       `${client} skill copy is not byte-identical`,
     );
+  }
+  assert(
+    files.get("packages/codex/plugins/cohesivity/skills/cohesivity/SKILL.md").equals(canonical),
+    "Codex marketplace skill copy is not byte-identical",
+  );
+
+  const localMcp = files.get(LOCAL_MCP_SOURCE);
+  for (const path of [
+    "packages/claude/mcp/project-bootstrap.mjs",
+    "packages/gemini/mcp/project-bootstrap.mjs",
+    "packages/antigravity/mcp/project-bootstrap.mjs",
+    "packages/openai/mcp/project-bootstrap.mjs",
+    "packages/codex/plugins/cohesivity/mcp/project-bootstrap.mjs",
+  ]) {
+    assert(files.get(path).equals(localMcp), `${path} is not byte-identical to the local MCP source`);
   }
 }
 

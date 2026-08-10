@@ -9,8 +9,8 @@
     {
       "name": "cohesivity",
       "source": "./",
-      "description": "Cohesivity backend infrastructure skill and OAuth-protected management tools.",
-      "version": "2.0.0",
+      "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
+      "version": "2.1.0",
       "category": "devops",
       "license": "MIT",
       "keywords": [

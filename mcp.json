@@ -4,6 +4,13 @@
     "cohesivity": {
       "type": "streamable-http",
       "url": "https://cohesivity.ai/mcp/manage"
+    },
+    "cohesivity-local": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/mcp/project-bootstrap.mjs"
+      ]
     }
   }
 }
