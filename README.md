@@ -32,9 +32,12 @@ expires after 72 hours unless claimed.
 
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: it requires Cohesivity sign-in
-and a claimed tenant. The endpoint returns an OAuth challenge to compatible MCP
-clients. No package contains a bearer token, literal auth header, client secret,
-or other credential.
+but it can be authorized before the account owns a tenant. The account-scoped
+grant can create the first tenant and manage current or future owned tenants;
+an optional tenant chosen during consent is only a default, and ownership is
+checked again on every tenant call. The endpoint returns an OAuth challenge to
+compatible MCP clients. No package contains a bearer token, literal auth header,
+client secret, or other credential.
 
 ## Supported package surfaces
 
