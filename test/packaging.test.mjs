@@ -21,6 +21,7 @@ import {
   SKILL_SHA256,
   SKILL_SOURCE_COMMIT,
   SKILL_VERSION,
+  VERSION,
   build,
   check,
   expectedFiles,
@@ -55,6 +56,17 @@ const findKeys = (value, keys = []) => {
   }
   return keys;
 };
+
+test("local MCP initialization reports the packaged release version", async () => {
+  const response = await handleRequest({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } },
+  });
+  assert.equal(response.result.serverInfo.version, VERSION);
+  assert.equal(json("package.json").version, VERSION);
+});
 
 test("root is a pure Agent Plugins 1.0 package", () => {
   const manifest = json("plugin.json");
