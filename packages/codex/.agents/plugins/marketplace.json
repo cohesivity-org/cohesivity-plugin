@@ -1,0 +1,23 @@
+{
+  "name": "cohesivity",
+  "interface": {
+    "displayName": "Cohesivity"
+  },
+  "plugins": [
+    {
+      "name": "cohesivity",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cohesivity"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE",
+        "products": [
+          "CODEX"
+        ]
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -9,15 +9,14 @@
     {
       "name": "cohesivity",
       "source": "./",
-      "description": "Agent-provisioned backend infrastructure via Cohesivity: Postgres, hosting, auth, storage, realtime, email, and AI model APIs over one HTTP API.",
-      "version": "1.0.0",
+      "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
+      "version": "2.1.0",
       "category": "devops",
       "license": "MIT",
       "keywords": [
         "backend",
         "infrastructure",
         "database",
-        "postgres",
         "hosting",
         "auth"
       ]

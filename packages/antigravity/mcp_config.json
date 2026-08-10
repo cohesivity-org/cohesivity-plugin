@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "cohesivity": {
+      "serverUrl": "https://cohesivity.ai/mcp/manage"
+    },
+    "cohesivity-local": {
+      "command": "node",
+      "args": [
+        "${extensionPath}${/}mcp${/}project-bootstrap.mjs"
+      ],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

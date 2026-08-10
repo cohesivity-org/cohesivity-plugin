@@ -1,0 +1,18 @@
+{
+  "name": "cohesivity",
+  "version": "2.1.0",
+  "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
+  "mcpServers": {
+    "cohesivity": {
+      "type": "http",
+      "url": "https://cohesivity.ai/mcp/manage"
+    },
+    "cohesivity-local": {
+      "command": "node",
+      "args": [
+        "${extensionPath}${/}mcp${/}project-bootstrap.mjs"
+      ],
+      "cwd": "${extensionPath}"
+    }
+  }
+}
