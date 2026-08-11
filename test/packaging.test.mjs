@@ -517,6 +517,7 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
     ],
   );
   for (const tool of tools) {
+    assert.equal(tool.inputSchema.type, "object", `${tool.name} must declare an object input schema`);
     assert.equal(tool.inputSchema.additionalProperties ?? false, false);
     assert.doesNotMatch(tool.name, /shell|exec|request|fetch|proxy/i);
   }
