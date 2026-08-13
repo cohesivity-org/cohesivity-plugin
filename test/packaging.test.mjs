@@ -119,11 +119,11 @@ test("root is a pure Agent Plugins 1.0 package", () => {
 
 test("canonical skill is pinned and every package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60");
-  assert.equal(SKILL_VERSION, "84fbece3c00b");
+  assert.equal(SKILL_SOURCE_COMMIT, "8f6dd3322c6d3e50a592b1cdf0d4490b4f2b95a9");
+  assert.equal(SKILL_VERSION, "8bc93e4d05f8");
   assert.equal(
     SKILL_SHA256,
-    "3b0d9cda6167263cb35a4e3b54ed455113318a1b24cb5e341f26843456b0b589",
+    "1f240ebcbf57a0dca22915d604644643382cf0b084447fcdf4b03ed46864a707",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),

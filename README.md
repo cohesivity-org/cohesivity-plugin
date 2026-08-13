@@ -127,10 +127,10 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60`:
+`cohesivity-org/cohesivity-skill@8f6dd3322c6d3e50a592b1cdf0d4490b4f2b95a9`:
 
-- skill metadata version: `84fbece3c00b`
-- SHA-256: `3b0d9cda6167263cb35a4e3b54ed455113318a1b24cb5e341f26843456b0b589`
+- skill metadata version: `8bc93e4d05f8`
+- SHA-256: `1f240ebcbf57a0dca22915d604644643382cf0b084447fcdf4b03ed46864a707`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -148,7 +148,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v2.1.4/`. Each client archive
+Versioned installer inputs live under `artifacts/v2.1.5/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
