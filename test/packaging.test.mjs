@@ -401,7 +401,6 @@ test("management tools use fixed API routes and redact credential-bearing respon
     { tenant_id: "swift-fox-running", approval_url: "https://cohesivity.ai/c/safe-handoff", wait: { auth_header: `Bearer ${managementKey}` } },
     { account: { tenant_id: "swift-fox-running", lifecycle: "ephemeral", owner_user_id: "private" }, authorization: `Bearer ${managementKey}` },
     { success: true, resource: "postgres", status: "active", credential: managementKey },
-    { success: true, resource: "postgres", status: "suspended", details: managementKey },
     { success: false, requested_count: 2, failed_count: 1, results: [{ resource: "postgres", success: true }, { resource: "redis", error: "failed", details: managementKey }] },
   ];
   const fetch = async (url, options) => {
@@ -425,12 +424,7 @@ test("management tools use fixed API routes and redact credential-bearing respon
         { fetch },
       ),
       await callTool(
-        "deprovision_resource",
-        { project_root: temporaryRoot, resource: "postgres" },
-        { fetch },
-      ),
-      await callTool(
-        "bulk_provision_resources",
+        "provision_resource",
         { project_root: temporaryRoot, resources: ["postgres", "redis"] },
         { fetch },
       ),
@@ -441,14 +435,13 @@ test("management tools use fixed API routes and redact credential-bearing respon
         [`${MANAGEMENT_API_URL}claim/url`, "POST"],
         [`${MANAGEMENT_API_URL}status`, "GET"],
         [`${MANAGEMENT_API_URL}resources/postgres`, "POST"],
-        [`${MANAGEMENT_API_URL}resources/postgres`, "DELETE"],
         [`${MANAGEMENT_API_URL}resources`, "POST"],
       ],
     );
     assert.equal("body" in requests[0].options, false);
     assert.equal(requests[0].options.headers.Authorization, `Bearer ${managementKey}`);
     assert.deepEqual(JSON.parse(requests[2].options.body), { region: "apac" });
-    assert.deepEqual(JSON.parse(requests[4].options.body), {
+    assert.deepEqual(JSON.parse(requests[3].options.body), {
       resources: ["postgres", "redis"],
     });
     const serialized = JSON.stringify(outputs);
@@ -512,8 +505,6 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
       "claim_tenant",
       "tenant_status",
       "provision_resource",
-      "deprovision_resource",
-      "bulk_provision_resources",
     ],
   );
   for (const tool of tools) {
@@ -521,6 +512,19 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
     assert.equal(tool.inputSchema.additionalProperties ?? false, false);
     assert.doesNotMatch(tool.name, /shell|exec|request|fetch|proxy/i);
   }
+  const provision = tools.find((tool) => tool.name === "provision_resource");
+  assert.ok(
+    provision.inputSchema.oneOf.some((variant) => variant.required?.includes("resources")),
+    "provision_resource must declare its bulk input shape",
+  );
+  await assert.rejects(
+    callTool("deprovision_resource", {}),
+    /Unknown tool: deprovision_resource/,
+  );
+  await assert.rejects(
+    callTool("bulk_provision_resources", {}),
+    /Unknown tool: bulk_provision_resources/,
+  );
   assert.deepEqual(redactApiOutput({ status: "ok", token: "hidden", message: "coh_man_123" }), {
     message: "[REDACTED]",
     status: "ok",
