@@ -13,11 +13,12 @@ The dependency-free **local `cohesivity-local` stdio MCP server** needs Node
 18 or newer but no Cohesivity account. Its primary `create_tenant` tool accepts
 an absolute project root, fetches the canonical quickstart, and executes it in
 that directory with `--no-plugin`. It returns only non-secret tenant metadata.
-The same server exposes fixed claim, status, provision, deprovision, and bulk
-provision operations against the Cohesivity Management API. Those operations
-read the project's `.cohesivity` management credential internally, project
-allowlisted responses, and never expose either `coh_*` value. There is no
-generic shell command or arbitrary HTTP proxy.
+The same server exposes fixed claim, status, and provision operations against
+the Cohesivity Management API. Its provision tool accepts either one resource
+or a resource list, so single and bulk provisioning share one tool. Those
+operations read the project's `.cohesivity` management credential internally,
+project allowlisted responses, and never expose either `coh_*` value. There is
+no generic shell command or arbitrary HTTP proxy.
 
 Node-less clients do not run this local component. They retain the documented
 quickstart fallback from the skill:
@@ -148,7 +149,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v2.1.4/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.0/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical

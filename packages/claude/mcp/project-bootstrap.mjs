@@ -37,7 +37,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "2.1.4";
+export const SERVER_VERSION = "3.0.0";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_QUICKSTART_BYTES = 1024 * 1024;
@@ -194,6 +194,18 @@ const vectorConfigurationSchema = {
   additionalProperties: false,
 };
 
+const bulkConfigurationsSchema = {
+  type: "object",
+  properties: {
+    postgres: postgresConfigurationSchema,
+    inbox: inboxConfigurationSchema,
+    realtime: realtimeConfigurationSchema,
+    "social-login": socialLoginConfigurationSchema,
+    "vector-database": vectorConfigurationSchema,
+  },
+  additionalProperties: false,
+};
+
 const provisionInputSchema = {
   type: "object",
   oneOf: [
@@ -225,19 +237,23 @@ const provisionInputSchema = {
           : ["project_root", "resource"],
       additionalProperties: false,
     })),
+    {
+      type: "object",
+      properties: {
+        project_root: projectRootProperty,
+        resources: {
+          type: "array",
+          minItems: 1,
+          maxItems: RESOURCE_NAMES.length,
+          uniqueItems: true,
+          items: { enum: RESOURCE_NAMES },
+        },
+        configurations: bulkConfigurationsSchema,
+      },
+      required: ["project_root", "resources"],
+      additionalProperties: false,
+    },
   ],
-};
-
-const bulkConfigurationsSchema = {
-  type: "object",
-  properties: {
-    postgres: postgresConfigurationSchema,
-    inbox: inboxConfigurationSchema,
-    realtime: realtimeConfigurationSchema,
-    "social-login": socialLoginConfigurationSchema,
-    "vector-database": vectorConfigurationSchema,
-  },
-  additionalProperties: false,
 };
 
 export const TOOLS = Object.freeze([
@@ -308,75 +324,25 @@ export const TOOLS = Object.freeze([
   },
   {
     name: "provision_resource",
-    title: "Provision one Cohesivity resource",
+    title: "Provision Cohesivity resources",
     description:
-      "Calls the named Cohesivity resource provisioning endpoint. Fetch the offering's live documentation and obtain any required user consent before calling.",
+      "Provisions one resource with resource/configuration, or several with resources/configurations. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
     inputSchema: provisionInputSchema,
     outputSchema: {
       type: "object",
       properties: {
         resource: { enum: RESOURCE_NAMES },
-        result: jsonObjectSchema,
-      },
-      required: ["resource", "result"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "deprovision_resource",
-    title: "Delete one Cohesivity resource",
-    description:
-      "Calls the named Cohesivity resource deletion endpoint. Deletion may be irreversible; call only after explicit user approval.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resource: { enum: RESOURCE_NAMES },
-      },
-      required: ["project_root", "resource"],
-      additionalProperties: false,
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
-        resource: { enum: RESOURCE_NAMES },
-        result: jsonObjectSchema,
-      },
-      required: ["resource", "result"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "bulk_provision_resources",
-    title: "Provision multiple Cohesivity resources",
-    description:
-      "Calls Cohesivity's named bulk resource provisioning endpoint. Fetch every offering's live documentation and obtain any required user consent before calling.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resources: {
-          type: "array",
-          minItems: 1,
-          maxItems: RESOURCE_NAMES.length,
-          uniqueItems: true,
-          items: { enum: RESOURCE_NAMES },
-        },
-        configurations: bulkConfigurationsSchema,
-      },
-      required: ["project_root", "resources"],
-      additionalProperties: false,
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
         resources: {
           type: "array",
           items: { enum: RESOURCE_NAMES },
         },
         result: jsonObjectSchema,
       },
-      required: ["resources", "result"],
+      required: ["result"],
+      oneOf: [
+        { required: ["resource"] },
+        { required: ["resources"] },
+      ],
       additionalProperties: false,
     },
   },
@@ -809,6 +775,48 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
   }
 
   if (name === "provision_resource") {
+    const hasResource =
+      isRecord(argumentsValue) && Object.prototype.hasOwnProperty.call(argumentsValue, "resource");
+    const hasResources =
+      isRecord(argumentsValue) && Object.prototype.hasOwnProperty.call(argumentsValue, "resources");
+    if (hasResource === hasResources) {
+      fail("Provide exactly one of resource or resources.");
+    }
+    if (hasResources) {
+      const args = exactObject(argumentsValue, ["project_root", "resources"], ["configurations"]);
+      const projectRoot = validateProjectRoot(args.project_root);
+      if (
+        !Array.isArray(args.resources) ||
+        args.resources.length === 0 ||
+        args.resources.length > RESOURCE_NAMES.length
+      ) {
+        fail("resources must be a non-empty array of supported resource names.");
+      }
+      const resources = args.resources.map(validateResource);
+      if (new Set(resources).size !== resources.length) fail("resources must be unique.");
+
+      const configurations = exactObject(args.configurations ?? {}, [], [
+        "postgres",
+        "inbox",
+        "realtime",
+        "social-login",
+        "vector-database",
+      ]);
+      const body = { resources };
+      for (const [resource, configuration] of Object.entries(configurations)) {
+        if (!resources.includes(resource)) fail(`Configuration supplied for unrequested resource: ${resource}.`);
+        body[resource] = validateConfiguration(resource, configuration, false);
+      }
+      for (const required of ["social-login", "vector-database"]) {
+        if (resources.includes(required) && configurations[required] === undefined) {
+          fail(`configurations.${required} is required when ${required} is requested.`);
+        }
+      }
+
+      const result = await managementRequest(projectRoot, "POST", "resources", body, fetchImpl);
+      return { resources, result };
+    }
+
     const args = exactObject(argumentsValue, ["project_root", "resource"], ["configuration"]);
     const projectRoot = validateProjectRoot(args.project_root);
     const resource = validateResource(args.resource);
@@ -828,55 +836,6 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       fetchImpl,
     );
     return { resource, result };
-  }
-
-  if (name === "deprovision_resource") {
-    const args = exactObject(argumentsValue, ["project_root", "resource"]);
-    const projectRoot = validateProjectRoot(args.project_root);
-    const resource = validateResource(args.resource);
-    const result = await managementRequest(
-      projectRoot,
-      "DELETE",
-      `resources/${resource}`,
-      undefined,
-      fetchImpl,
-    );
-    return { resource, result };
-  }
-
-  if (name === "bulk_provision_resources") {
-    const args = exactObject(argumentsValue, ["project_root", "resources"], ["configurations"]);
-    const projectRoot = validateProjectRoot(args.project_root);
-    if (
-      !Array.isArray(args.resources) ||
-      args.resources.length === 0 ||
-      args.resources.length > RESOURCE_NAMES.length
-    ) {
-      fail("resources must be a non-empty array of supported resource names.");
-    }
-    const resources = args.resources.map(validateResource);
-    if (new Set(resources).size !== resources.length) fail("resources must be unique.");
-
-    const configurations = exactObject(args.configurations ?? {}, [], [
-      "postgres",
-      "inbox",
-      "realtime",
-      "social-login",
-      "vector-database",
-    ]);
-    const body = { resources };
-    for (const [resource, configuration] of Object.entries(configurations)) {
-      if (!resources.includes(resource)) fail(`Configuration supplied for unrequested resource: ${resource}.`);
-      body[resource] = validateConfiguration(resource, configuration, false);
-    }
-    for (const required of ["social-login", "vector-database"]) {
-      if (resources.includes(required) && configurations[required] === undefined) {
-        fail(`configurations.${required} is required when ${required} is requested.`);
-      }
-    }
-
-    const result = await managementRequest(projectRoot, "POST", "resources", body, fetchImpl);
-    return { resources, result };
   }
 
   fail(`Unknown tool: ${name}.`);
