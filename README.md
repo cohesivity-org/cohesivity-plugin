@@ -47,7 +47,7 @@ client secret, or other credential.
 | --- | --- | --- |
 | Agent Plugins 1.0 clients | repository root | `plugin.json`, `mcp.json` |
 | Claude Code marketplace | repository root | `.claude-plugin/marketplace.json` pointing to `packages/claude/` |
-| Claude Code plugin/marketplace | `packages/claude/` | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.mcp.json` |
+| Claude Code plugin | `packages/claude/` | `.claude-plugin/plugin.json`, `.mcp.json` |
 | Gemini CLI extension | `packages/gemini/` | `gemini-extension.json` |
 | Google Antigravity plugin | `packages/antigravity/` | `plugin.json`, `mcp_config.json` |
 | OpenAI/Codex native plugin | `packages/openai/` | `.codex-plugin/plugin.json`, `.mcp.json` |
@@ -67,7 +67,7 @@ source when a native client requires its own root marker. For example, from a
 checkout:
 
 ```bash
-claude plugin marketplace add .
+claude plugin marketplace add ./
 gemini extensions install ./packages/gemini
 agy plugin install ./packages/antigravity
 ```
@@ -151,7 +151,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.0/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.1/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical

@@ -93,26 +93,6 @@ const claudeManifest = {
   mcpServers: "./.mcp.json",
 };
 
-const claudeMarketplace = {
-  $schema: "https://anthropic.com/claude-code/marketplace.schema.json",
-  name: "cohesivity",
-  owner: {
-    name: "Cohesivity",
-    url: "https://cohesivity.ai",
-  },
-  plugins: [
-    {
-      name: "cohesivity",
-      source: "./",
-      description: DESCRIPTION,
-      version: VERSION,
-      category: "devops",
-      license: "MIT",
-      keywords: KEYWORDS,
-    },
-  ],
-};
-
 const rootClaudeMarketplace = {
   $schema: "https://anthropic.com/claude-code/marketplace.schema.json",
   name: "cohesivity",
@@ -255,7 +235,6 @@ export function expectedFiles(root = ROOT) {
   const wrappers = {
     claude: {
       ".claude-plugin/plugin.json": json(claudeManifest),
-      ".claude-plugin/marketplace.json": json(claudeMarketplace),
       ".mcp.json": json(claudeMcp),
     },
     gemini: {

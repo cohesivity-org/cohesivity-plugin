@@ -66,6 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
+  assert.equal(VERSION, "3.0.1");
 });
 
 test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry", () => {
@@ -161,6 +162,7 @@ test("canonical skill is pinned and every package copy is byte-identical", () =>
 
 test("native wrapper package roots use each client's remote MCP shape", () => {
   const claudeManifest = json("packages/claude/.claude-plugin/plugin.json");
+  assert.equal(existsSync("packages/claude/.claude-plugin/marketplace.json"), false);
   assert.equal(claudeManifest.skills, "./skills/");
   assert.equal(claudeManifest.mcpServers, "./.mcp.json");
   assert.equal(
@@ -605,6 +607,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
+  assert.match(readme, /claude plugin marketplace add \.\//);
+  assert.doesNotMatch(readme, /claude plugin marketplace add \.\n/);
   assert.match(readme, /mcp_servers:\n  <qualified-server-name>:/);
   assert.match(readme, /url: https:\/\/cohesivity\.ai\/mcp\/manage/);
   assert.match(readme, /auth: oauth/);
