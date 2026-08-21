@@ -25,6 +25,8 @@ const PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.jso
 const MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
 const DESCRIPTION =
   "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.";
+const MARKETPLACE_DESCRIPTION =
+  "cohesivity.ai offers free agent native backend services. Annonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. topups through x402.";
 const AUTHOR = {
   name: "Cohesivity",
   email: "smj@cohesivity.ai",
@@ -32,7 +34,7 @@ const AUTHOR = {
 };
 const KEYWORDS = ["backend", "infrastructure", "database", "hosting", "auth"];
 const LEGACY_ROOT_PATHS = [
-  ".claude-plugin",
+  ".claude-plugin/plugin.json",
   ".codex-plugin",
   ".mcp.json",
   "gemini-extension.json",
@@ -103,6 +105,27 @@ const claudeMarketplace = {
       name: "cohesivity",
       source: "./",
       description: DESCRIPTION,
+      version: VERSION,
+      category: "devops",
+      license: "MIT",
+      keywords: KEYWORDS,
+    },
+  ],
+};
+
+const rootClaudeMarketplace = {
+  $schema: "https://anthropic.com/claude-code/marketplace.schema.json",
+  name: "cohesivity",
+  description: MARKETPLACE_DESCRIPTION,
+  owner: {
+    name: "Cohesivity",
+    url: "https://cohesivity.ai",
+  },
+  plugins: [
+    {
+      name: "cohesivity",
+      source: "./packages/claude",
+      description: MARKETPLACE_DESCRIPTION,
       version: VERSION,
       category: "devops",
       license: "MIT",
@@ -225,6 +248,7 @@ export function expectedFiles(root = ROOT) {
   const files = new Map([
     ["plugin.json", Buffer.from(json(portableManifest))],
     ["mcp.json", Buffer.from(json(portableMcp))],
+    [".claude-plugin/marketplace.json", Buffer.from(json(rootClaudeMarketplace))],
     [LOCAL_MCP_SOURCE, localMcp],
   ]);
 
