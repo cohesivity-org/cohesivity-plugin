@@ -68,7 +68,7 @@ test("local MCP initialization reports the packaged release version", async () =
   assert.equal(json("package.json").version, VERSION);
 });
 
-test("root is a pure Agent Plugins 1.0 package", () => {
+test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry", () => {
   const manifest = json("plugin.json");
   assert.equal(
     manifest.$schema,
@@ -105,8 +105,22 @@ test("root is a pure Agent Plugins 1.0 package", () => {
     },
   });
 
+  const rootClaudeMarketplace = json(".claude-plugin/marketplace.json");
+  assert.equal(rootClaudeMarketplace.name, "cohesivity");
+  assert.equal(
+    rootClaudeMarketplace.description,
+    "cohesivity.ai offers free agent native backend services. Annonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. topups through x402.",
+  );
+  assert.equal(rootClaudeMarketplace.plugins.length, 1);
+  assert.equal(rootClaudeMarketplace.plugins[0].name, "cohesivity");
+  assert.equal(rootClaudeMarketplace.plugins[0].source, "./packages/claude");
+  assert.equal(
+    rootClaudeMarketplace.plugins[0].description,
+    "cohesivity.ai offers free agent native backend services. Annonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. topups through x402.",
+  );
+  assert.equal(existsSync(".claude-plugin/plugin.json"), false);
+
   for (const marker of [
-    ".claude-plugin",
     ".codex-plugin",
     ".mcp.json",
     "gemini-extension.json",

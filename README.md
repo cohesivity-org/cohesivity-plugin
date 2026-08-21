@@ -2,10 +2,11 @@
 
 Cohesivity packages one canonical Agent Skill together with a local project
 bootstrap MCP server and the protected remote Cohesivity management MCP server.
-The repository root is a pure
-[Agent Plugins 1.0](https://agent-plugins.org/) package; generated native
-wrappers live under `packages/` so client-specific markers never change how the
-portable root is detected.
+The repository root remains an
+[Agent Plugins 1.0](https://agent-plugins.org/) package. Generated native
+wrappers live under `packages/`, and the root Claude marketplace manifest
+points Claude Code at its self-contained wrapper instead of treating the
+portable root as a Claude plugin.
 
 ## Local bootstrap and remote OAuth are independent
 
@@ -45,6 +46,7 @@ client secret, or other credential.
 | Surface | Installable package root | Manifest and MCP artifact |
 | --- | --- | --- |
 | Agent Plugins 1.0 clients | repository root | `plugin.json`, `mcp.json` |
+| Claude Code marketplace | repository root | `.claude-plugin/marketplace.json` pointing to `packages/claude/` |
 | Claude Code plugin/marketplace | `packages/claude/` | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.mcp.json` |
 | Gemini CLI extension | `packages/gemini/` | `gemini-extension.json` |
 | Google Antigravity plugin | `packages/antigravity/` | `plugin.json`, `mcp_config.json` |
@@ -65,7 +67,7 @@ source when a native client requires its own root marker. For example, from a
 checkout:
 
 ```bash
-claude plugin marketplace add ./packages/claude
+claude plugin marketplace add .
 gemini extensions install ./packages/gemini
 agy plugin install ./packages/antigravity
 ```
