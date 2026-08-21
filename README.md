@@ -67,7 +67,7 @@ source when a native client requires its own root marker. For example, from a
 checkout:
 
 ```bash
-claude plugin marketplace add .
+claude plugin marketplace add ./
 gemini extensions install ./packages/gemini
 agy plugin install ./packages/antigravity
 ```

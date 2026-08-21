@@ -607,6 +607,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
+  assert.match(readme, /claude plugin marketplace add \.\//);
+  assert.doesNotMatch(readme, /claude plugin marketplace add \.\n/);
   assert.match(readme, /mcp_servers:\n  <qualified-server-name>:/);
   assert.match(readme, /url: https:\/\/cohesivity\.ai\/mcp\/manage/);
   assert.match(readme, /auth: oauth/);
