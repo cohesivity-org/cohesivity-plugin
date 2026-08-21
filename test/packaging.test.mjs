@@ -66,6 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
+  assert.equal(VERSION, "3.0.1");
 });
 
 test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry", () => {
@@ -161,6 +162,7 @@ test("canonical skill is pinned and every package copy is byte-identical", () =>
 
 test("native wrapper package roots use each client's remote MCP shape", () => {
   const claudeManifest = json("packages/claude/.claude-plugin/plugin.json");
+  assert.equal(existsSync("packages/claude/.claude-plugin/marketplace.json"), false);
   assert.equal(claudeManifest.skills, "./skills/");
   assert.equal(claudeManifest.mcpServers, "./.mcp.json");
   assert.equal(
