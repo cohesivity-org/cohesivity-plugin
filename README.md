@@ -55,11 +55,13 @@ client secret, or other credential.
 
 Every installable plugin root is self-contained: it includes
 `skills/cohesivity/SKILL.md`, `mcp/project-bootstrap.mjs`, the appropriate dual
-MCP configuration, and the license. `packages/codex/` is a marketplace catalog
-whose self-contained plugin lives at `plugins/cohesivity/`. The OpenAI and
-Codex packages intentionally have no `.app.json`: this repository does not own
-a registered `plugin_asdk_app...` ID, and inventing one would not create a
-valid ChatGPT app connection.
+MCP configuration, and the license. The Claude wrapper adapts the canonical
+skill with Claude Code marketplace metadata and section headings while keeping
+the same operating rules. Other wrappers preserve the canonical skill bytes.
+`packages/codex/` is a marketplace catalog whose self-contained plugin lives at
+`plugins/cohesivity/`. The OpenAI and Codex packages intentionally have no
+`.app.json`: this repository does not own a registered `plugin_asdk_app...` ID,
+and inventing one would not create a valid ChatGPT app connection.
 
 Use the repository root with clients that implement Agent Plugins 1.0,
 including OpenClaw and Hermes. Use a `packages/<client>/` directory as the
@@ -151,7 +153,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.1/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.2/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical

@@ -66,7 +66,32 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.1");
+  assert.equal(VERSION, "3.0.2");
+});
+
+test("Claude skill carries marketplace metadata without changing the portable skill", () => {
+  const portableSkill = readFileSync("skills/cohesivity/SKILL.md", "utf8");
+  const claudeSkill = readFileSync("packages/claude/skills/cohesivity/SKILL.md", "utf8");
+  assert.doesNotMatch(portableSkill, /^allowed-tools:/m);
+  assert.match(claudeSkill, /^allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local$/m);
+  assert.match(claudeSkill, new RegExp(`^version: ${VERSION}$`, "m"));
+  assert.match(claudeSkill, /^author: Cohesivity <smj@cohesivity\.ai>$/m);
+  assert.match(claudeSkill, /^license: MIT$/m);
+  assert.match(claudeSkill, /^compatibility: Designed for Claude Code;/m);
+  assert.match(claudeSkill, /^tags:\n  - backend\n  - infrastructure\n  - mcp\n  - database\n  - hosting$/m);
+  for (const section of [
+    "Overview",
+    "Prerequisites",
+    "Installation",
+    "Output",
+    "Examples",
+    "Workflow",
+    "Error handling",
+    "Resources",
+  ]) {
+    assert.match(claudeSkill, new RegExp(`^## ${section}$`, "m"));
+  }
+  assert.match(claudeSkill, /^description: [^`]+$/m);
 });
 
 test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry", () => {
@@ -132,7 +157,7 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
   }
 });
 
-test("canonical skill is pinned and every package copy is byte-identical", () => {
+test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
   assert.equal(SKILL_SOURCE_COMMIT, "f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60");
   assert.equal(SKILL_VERSION, "84fbece3c00b");
@@ -150,7 +175,6 @@ test("canonical skill is pinned and every package copy is byte-identical", () =>
   );
 
   for (const path of [
-    "packages/claude/skills/cohesivity/SKILL.md",
     "packages/gemini/skills/cohesivity/SKILL.md",
     "packages/antigravity/skills/cohesivity/SKILL.md",
     "packages/openai/skills/cohesivity/SKILL.md",

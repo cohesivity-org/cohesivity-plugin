@@ -33,6 +33,19 @@ const AUTHOR = {
   url: "https://cohesivity.ai",
 };
 const KEYWORDS = ["backend", "infrastructure", "database", "hosting", "auth"];
+const CLAUDE_SKILL_METADATA = [
+  "allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local",
+  `version: ${VERSION}`,
+  "author: Cohesivity <smj@cohesivity.ai>",
+  "license: MIT",
+  "compatibility: Designed for Claude Code; the core instructions also work in Codex, OpenClaw, and Hermes when an equivalent skill and MCP adapter are available.",
+  "tags:",
+  "  - backend",
+  "  - infrastructure",
+  "  - mcp",
+  "  - database",
+  "  - hosting",
+].join("\n");
 const LEGACY_ROOT_PATHS = [
   ".claude-plugin/plugin.json",
   ".codex-plugin",
@@ -221,8 +234,48 @@ function readCanonicalSkill(root = ROOT) {
   return skill;
 }
 
+function buildClaudeSkill(skill) {
+  const text = skill.toString("utf8");
+  const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  assert(match, "canonical skill must contain YAML frontmatter");
+
+  let frontmatter = match[1].replace(/`\.cohesivity`/g, ".cohesivity");
+  assert(
+    /^metadata:/m.test(frontmatter),
+    "canonical skill must contain metadata before the Claude adapter can extend it",
+  );
+  frontmatter = frontmatter.replace(/^metadata:/m, `${CLAUDE_SKILL_METADATA}\nmetadata:`);
+
+  let body = match[2];
+  const replacements = [
+    ["# Cohesivity\n\n", "# Cohesivity\n\n## Overview\n\n"],
+    [
+      "\n## When Cohesivity applies\n",
+      "\n## Prerequisites\n\nClaude Code needs access to the project directory through Read. Use WebFetch for current Cohesivity offering and pricing documentation; use the bundled MCP servers for tenant bootstrap and management when they are available.\n\n## When Cohesivity applies\n",
+    ],
+    ["\n## Installer fallback\n", "\n## Installation\n"],
+    [
+      "\n## Hard rules\n",
+      "\n## Output\n\nBootstrap creates or reuses a project tenant and stores its local credentials in .cohesivity without returning secrets through MCP. Provisioning returns the selected resource's server-side endpoint and credential; the resource is ready only after those values are available.\n\n## Hard rules\n",
+    ],
+    [
+      "\n## Workflow\n",
+      "\n## Examples\n\n- For a new local project, call create_tenant with its absolute root, Read the resulting .cohesivity file, use WebFetch on the requested offering page, and then call provision_resource.\n- For a project that already has a valid .cohesivity file, skip bootstrap, fetch the live offering documentation, and provision only the missing resource.\n\n## Workflow\n",
+    ],
+    ["\n## Common mistakes\n", "\n## Error handling\n"],
+    ["\n## Live docs\n", "\n## Resources\n"],
+  ];
+  for (const [from, to] of replacements) {
+    assert(body.includes(from), `canonical skill is missing Claude adapter anchor: ${from.trim()}`);
+    body = body.replace(from, to);
+  }
+
+  return Buffer.from(`---\n${frontmatter}\n---\n${body}`);
+}
+
 export function expectedFiles(root = ROOT) {
   const skill = readCanonicalSkill(root);
+  const claudeSkill = buildClaudeSkill(skill);
   const license = readFileSync(resolve(root, "LICENSE"));
   const localMcp = readFileSync(resolve(root, LOCAL_MCP_SOURCE));
   const files = new Map([
@@ -253,7 +306,10 @@ export function expectedFiles(root = ROOT) {
   for (const [client, clientFiles] of Object.entries(wrappers)) {
     const packageRoot = `packages/${client}`;
     files.set(`${packageRoot}/LICENSE`, license);
-    files.set(`${packageRoot}/skills/cohesivity/SKILL.md`, skill);
+    files.set(
+      `${packageRoot}/skills/cohesivity/SKILL.md`,
+      client === "claude" ? claudeSkill : skill,
+    );
     files.set(`${packageRoot}/${LOCAL_MCP_SOURCE}`, localMcp);
     for (const [path, contents] of Object.entries(clientFiles)) {
       files.set(`${packageRoot}/${path}`, Buffer.from(contents));
@@ -419,7 +475,7 @@ export function validateExpectedFiles(files) {
   validatePortableMcp(JSON.parse(files.get("mcp.json").toString("utf8")));
   validateNativeArtifacts(files);
 
-  const canonical = files.get("packages/claude/skills/cohesivity/SKILL.md");
+  const canonical = readCanonicalSkill();
   for (const client of ["gemini", "antigravity", "openai"]) {
     assert(
       files.get(`packages/${client}/skills/cohesivity/SKILL.md`).equals(canonical),
@@ -430,6 +486,29 @@ export function validateExpectedFiles(files) {
     files.get("packages/codex/plugins/cohesivity/skills/cohesivity/SKILL.md").equals(canonical),
     "Codex marketplace skill copy is not byte-identical",
   );
+  const claudeSkill = files.get("packages/claude/skills/cohesivity/SKILL.md").toString("utf8");
+  for (const field of [
+    "allowed-tools",
+    "version",
+    "author",
+    "license",
+    "compatibility",
+    "tags",
+  ]) {
+    assert(new RegExp(`^${field}:`, "m").test(claudeSkill), `Claude skill is missing ${field}`);
+  }
+  for (const section of [
+    "Overview",
+    "Prerequisites",
+    "Installation",
+    "Output",
+    "Examples",
+    "Workflow",
+    "Error handling",
+    "Resources",
+  ]) {
+    assert(claudeSkill.includes(`## ${section}`), `Claude skill is missing ${section}`);
+  }
 
   const localMcp = files.get(LOCAL_MCP_SOURCE);
   for (const path of [
