@@ -442,7 +442,15 @@ function gitignorePath(projectRoot) {
 function readRegularFile(path, label, missingMessage, oversizedMessage, maxBytes) {
   let descriptor;
   try {
-    descriptor = openSync(path, "r");
+    const initial = lstatSync(path);
+    if (initial.isSymbolicLink() || !initial.isFile()) fail(`${label} must be a regular file.`);
+    if (initial.size > maxBytes) fail(oversizedMessage);
+    descriptor = openSync(
+      path,
+      fsConstants.O_RDONLY |
+        (fsConstants.O_NONBLOCK ?? 0) |
+        (fsConstants.O_NOFOLLOW ?? 0),
+    );
     const opened = fstatSync(descriptor);
     const current = lstatSync(path);
     if (
@@ -486,7 +494,12 @@ function ensureCredentialIgnored(projectRoot) {
     ".gitignore is unexpectedly large.",
     MAX_GITIGNORE_BYTES,
   );
-  if (contents.split(/\r?\n/u).includes(".cohesivity")) return;
+  const lastEffectiveRule = contents
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .at(-1);
+  if (lastEffectiveRule === ".cohesivity") return;
 
   let descriptor;
   try {

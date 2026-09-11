@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -457,6 +458,70 @@ test("create_tenant rejects credential and gitignore symlinks before network or 
     );
     assert.equal(fetches, 0);
     assert.equal(readFileSync(outside, "utf8"), "unchanged\n");
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test("credential reads reject a FIFO without blocking the stdio server", () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-fifo-"));
+  const credential = join(temporaryRoot, ".cohesivity");
+  const created = spawnSync("mkfifo", [credential], { encoding: "utf8" });
+  assert.equal(created.status, 0, created.stderr);
+
+  try {
+    const moduleUrl = new URL("../mcp/project-bootstrap.mjs", import.meta.url).href;
+    const program = `
+      import { callTool } from ${JSON.stringify(moduleUrl)};
+      try {
+        await callTool("tenant_status", { project_root: ${JSON.stringify(temporaryRoot)} });
+        process.exitCode = 2;
+      } catch (error) {
+        if (!/regular file/.test(error.message)) process.exitCode = 3;
+      }
+    `;
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", program], {
+      encoding: "utf8",
+      env: { CLAUDE_PROJECT_DIR: temporaryRoot },
+      timeout: 1_000,
+    });
+    assert.notEqual(result.error?.code, "ETIMEDOUT", "credential FIFO blocked the MCP process");
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test("create_tenant appends an effective ignore rule after credential negations", async () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-ignore-negation-"));
+  const managementKey = "coh_man_1234567890abcdefghij";
+  const applicationKey = "coh_app_abcdefghij1234567890";
+  writeFileSync(join(temporaryRoot, ".gitignore"), ".cohesivity\n!.cohesivity\n");
+  assert.equal(spawnSync("git", ["init", "-q"], { cwd: temporaryRoot }).status, 0);
+
+  const fetch = async () => ({
+    ok: true,
+    status: 201,
+    url: `${MANAGEMENT_API_URL}genesis?format=json`,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: async () => JSON.stringify({
+      tenant_id: "swift-fox-running",
+      coh_management_key: managementKey,
+      coh_application_key: applicationKey,
+      expires_at: "2026-08-13T00:00:00.000Z",
+      tenant_lifecycle: "ephemeral",
+      runtime_profile: "stable-v1",
+    }),
+  });
+
+  try {
+    await callTool("create_tenant", { project_root: temporaryRoot, confirmed: true }, { fetch });
+    const ignored = spawnSync("git", ["check-ignore", "-q", ".cohesivity"], {
+      cwd: temporaryRoot,
+      encoding: "utf8",
+    });
+    assert.equal(ignored.status, 0, ignored.stderr);
+    assert.match(readFileSync(join(temporaryRoot, ".gitignore"), "utf8"), /!\.cohesivity\n\.cohesivity\n$/);
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }
