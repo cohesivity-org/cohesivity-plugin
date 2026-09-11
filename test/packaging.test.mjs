@@ -726,6 +726,15 @@ test("versioned archives and install manifest are deterministic, complete, and t
   for (const entry of manifest.packages) {
     const path = `${ARTIFACT_DIRECTORY}/${entry.archive}`;
     const archive = readFileSync(path);
+    const published = spawnSync("git", ["show", `${sourceCommit}:${path}`], {
+      encoding: "buffer",
+    });
+    assert.equal(
+      published.status,
+      0,
+      `${entry.archive} is absent from the manifest's immutable source commit`,
+    );
+    assert.deepEqual(published.stdout, archive, `${entry.archive} differs at the immutable source commit`);
     assert.equal(archive.length, entry.size);
     assert.equal(createHash("sha256").update(archive).digest("hex"), entry.sha256);
     assert.equal(entry.immutable_url, `${manifest.source.immutable_base_url}/${entry.archive}`);
