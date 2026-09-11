@@ -65,7 +65,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.3");
+  assert.equal(VERSION, "3.0.4");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -78,6 +78,12 @@ test("Claude skill carries marketplace metadata without changing the portable sk
   assert.match(claudeSkill, /^license: MIT$/m);
   assert.match(claudeSkill, /^compatibility: Designed for Claude Code;/m);
   assert.match(claudeSkill, /^tags:\n  - backend\n  - infrastructure\n  - mcp\n  - database\n  - hosting$/m);
+  assert.doesNotMatch(
+    claudeSkill,
+    /^metadata:\n  version:/m,
+    "Claude skill must expose one unambiguous marketplace version",
+  );
+  assert.doesNotMatch(claudeSkill, /compare its `metadata\.version` frontmatter value/);
   for (const section of [
     "Overview",
     "Prerequisites",
