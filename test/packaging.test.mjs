@@ -501,11 +501,11 @@ test("credential reads reject a FIFO without blocking the stdio server", () => {
   }
 });
 
-test("create_tenant appends an effective ignore rule after credential negations", async () => {
+test("create_tenant appends an effective ignore rule after negation and leading whitespace", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-ignore-negation-"));
   const managementKey = "coh_man_1234567890abcdefghij";
   const applicationKey = "coh_app_abcdefghij1234567890";
-  writeFileSync(join(temporaryRoot, ".gitignore"), ".cohesivity\n!.cohesivity\n");
+  writeFileSync(join(temporaryRoot, ".gitignore"), ".cohesivity\n!.cohesivity\n .cohesivity\n");
   assert.equal(spawnSync("git", ["init", "-q"], { cwd: temporaryRoot }).status, 0);
 
   const fetch = async () => ({
@@ -530,7 +530,7 @@ test("create_tenant appends an effective ignore rule after credential negations"
       encoding: "utf8",
     });
     assert.equal(ignored.status, 0, ignored.stderr);
-    assert.match(readFileSync(join(temporaryRoot, ".gitignore"), "utf8"), /!\.cohesivity\n\.cohesivity\n$/);
+    assert.match(readFileSync(join(temporaryRoot, ".gitignore"), "utf8"), / \.cohesivity\n\.cohesivity\n$/);
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }

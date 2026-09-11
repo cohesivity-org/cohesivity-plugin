@@ -496,7 +496,6 @@ function ensureCredentialIgnored(projectRoot) {
   );
   const lastEffectiveRule = contents
     .split(/\r?\n/u)
-    .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith("#"))
     .at(-1);
   if (lastEffectiveRule === ".cohesivity") return;
