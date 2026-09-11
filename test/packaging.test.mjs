@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { EventEmitter } from "node:events";
 import {
   cpSync,
   existsSync,
@@ -8,11 +7,11 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Writable } from "node:stream";
 import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import {
@@ -34,7 +33,6 @@ import {
 } from "../scripts/build-artifacts.mjs";
 import {
   MANAGEMENT_API_URL,
-  QUICKSTART_URL,
   REMOTE_MCP_URL,
   callTool,
   handleRequest,
@@ -66,7 +64,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.2");
+  assert.equal(VERSION, "3.0.3");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -159,11 +157,11 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60");
-  assert.equal(SKILL_VERSION, "84fbece3c00b");
+  assert.equal(SKILL_SOURCE_COMMIT, "78d6d26c09ea955e2ab2392a62d980817bcabb39");
+  assert.equal(SKILL_VERSION, "2923f0623a63");
   assert.equal(
     SKILL_SHA256,
-    "3b0d9cda6167263cb35a4e3b54ed455113318a1b24cb5e341f26843456b0b589",
+    "f995c85b94ac5198eb0bdb45c7847d76092f7905cb6d7802e5e0caa6c2d8e502",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -334,57 +332,39 @@ test("local MCP source is byte-identical in every installable package", () => {
   }
 });
 
-test("create_tenant validates the root, uses argv execution, and omits every secret", async () => {
+test("create_tenant provisions through the fixed API and writes only project credentials", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-project-root-"));
   const managementKey = "coh_man_1234567890abcdefghij";
   const applicationKey = "coh_app_abcdefghij1234567890";
-  let invocation;
-  let suppliedScript = Buffer.alloc(0);
+  const requests = [];
 
   try {
-    const spawn = (command, args, options) => {
-      invocation = { command, args, options };
-      const child = new EventEmitter();
-      child.stdin = new Writable({
-        write(chunk, _encoding, callback) {
-          suppliedScript = Buffer.concat([suppliedScript, Buffer.from(chunk)]);
-          callback();
-        },
-        final(callback) {
-          writeFileSync(
-            join(temporaryRoot, ".cohesivity"),
-            [
-              "tenant_id=swift-fox-running",
-              `coh_management_key=${managementKey}`,
-              `coh_application_key=${applicationKey}`,
-              "expires_at=2026-08-13T00:00:00.000Z",
-              "tenant_lifecycle=ephemeral",
-              "runtime_profile=stable-v1",
-              "",
-            ].join("\n"),
-          );
-          callback();
-          queueMicrotask(() => child.emit("close", 0, null));
-        },
-      });
-      return child;
-    };
     const fetch = async (url, options) => {
-      assert.equal(url, QUICKSTART_URL);
+      requests.push({ url: String(url), options });
+      assert.equal(String(url), `${MANAGEMENT_API_URL}genesis?format=json`);
+      assert.equal(options.method, "POST");
+      assert.equal(options.redirect, "error");
       assert.match(options.headers["User-Agent"], /^cohesivity-project-bootstrap\//);
-      const script = Buffer.from("#!/usr/bin/env bash\nexit 0\n");
       return {
         ok: true,
-        url: QUICKSTART_URL,
-        headers: new Headers({ "content-length": String(script.length) }),
-        arrayBuffer: async () => script,
+        status: 201,
+        url: `${MANAGEMENT_API_URL}genesis?format=json`,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () => JSON.stringify({
+          tenant_id: "swift-fox-running",
+          coh_management_key: managementKey,
+          coh_application_key: applicationKey,
+          expires_at: "2026-08-13T00:00:00.000Z",
+          tenant_lifecycle: "ephemeral",
+          runtime_profile: "stable-v1",
+        }),
       };
     };
 
     const output = await callTool(
       "create_tenant",
-      { project_root: temporaryRoot },
-      { fetch, spawn },
+      { project_root: temporaryRoot, confirmed: true },
+      { fetch },
     );
     assert.deepEqual(output, {
       tenant_id: "swift-fox-running",
@@ -392,18 +372,11 @@ test("create_tenant validates the root, uses argv execution, and omits every sec
       tenant_lifecycle: "ephemeral",
       runtime_profile: "stable-v1",
     });
-    assert.deepEqual(invocation, {
-      command: "bash",
-      args: ["-s", "--", "--no-plugin"],
-      options: {
-        cwd: temporaryRoot,
-        env: process.env,
-        shell: false,
-        stdio: ["pipe", "ignore", "ignore"],
-        windowsHide: true,
-      },
-    });
-    assert.match(suppliedScript.toString("utf8"), /^#!\/usr\/bin\/env bash/);
+    assert.equal(requests.length, 1);
+    assert.match(readFileSync(join(temporaryRoot, ".gitignore"), "utf8"), /(?:^|\n)\.cohesivity(?:\n|$)/);
+    const credentials = readFileSync(join(temporaryRoot, ".cohesivity"), "utf8");
+    assert.match(credentials, new RegExp(`coh_management_key=${managementKey}`));
+    assert.match(credentials, new RegExp(`coh_application_key=${applicationKey}`));
     assert.doesNotMatch(JSON.stringify(output), /coh_(?:man|app)_/);
     assert.doesNotMatch(JSON.stringify(output), new RegExp(managementKey));
     assert.doesNotMatch(JSON.stringify(output), new RegExp(applicationKey));
@@ -412,18 +385,78 @@ test("create_tenant validates the root, uses argv execution, and omits every sec
   }
 });
 
+test("local MCP mutations fail before network or filesystem writes without explicit confirmation", async () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-confirmation-"));
+  let fetches = 0;
+  const fetch = async () => {
+    fetches += 1;
+    throw new Error("network must not run");
+  };
+  try {
+    for (const [name, argumentsValue] of [
+      ["create_tenant", { project_root: temporaryRoot }],
+      ["claim_tenant", { project_root: temporaryRoot }],
+      ["provision_resource", { project_root: temporaryRoot, resource: "postgres" }],
+    ]) {
+      await assert.rejects(callTool(name, argumentsValue, { fetch }), /confirmed/);
+    }
+    assert.equal(fetches, 0);
+    assert.equal(existsSync(join(temporaryRoot, ".cohesivity")), false);
+    assert.equal(existsSync(join(temporaryRoot, ".gitignore")), false);
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
 test("project root validation rejects traversal and unsafe roots", () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-traversal-"));
   const project = join(temporaryRoot, "project");
+  const otherProject = join(temporaryRoot, "other-project");
   mkdirSync(project);
+  mkdirSync(otherProject);
   try {
-    assert.equal(validateProjectRoot(project), project);
+    assert.equal(validateProjectRoot(project, project), project);
     assert.throws(
       () => validateProjectRoot(`${project}/../project`),
       /parent-directory traversal/,
     );
     assert.throws(() => validateProjectRoot("../project"), /absolute path/);
     assert.throws(() => validateProjectRoot("/"), /filesystem root/);
+    assert.throws(
+      () => validateProjectRoot(otherProject, project),
+      /current Claude Code project directory/,
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test("create_tenant rejects credential and gitignore symlinks before network or outside writes", async () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-symlink-"));
+  const project = join(temporaryRoot, "project");
+  const outside = join(temporaryRoot, "outside");
+  mkdirSync(project);
+  writeFileSync(outside, "unchanged\n");
+  let fetches = 0;
+  const fetch = async () => {
+    fetches += 1;
+    throw new Error("network must not run");
+  };
+
+  try {
+    symlinkSync(outside, join(project, ".gitignore"));
+    await assert.rejects(
+      callTool("create_tenant", { project_root: project, confirmed: true }, { fetch }),
+      /\.gitignore must be a regular file/,
+    );
+    rmSync(join(project, ".gitignore"));
+    symlinkSync(outside, join(project, ".cohesivity"));
+    await assert.rejects(
+      callTool("create_tenant", { project_root: project, confirmed: true }, { fetch }),
+      /\.cohesivity must be a regular file/,
+    );
+    assert.equal(fetches, 0);
+    assert.equal(readFileSync(outside, "utf8"), "unchanged\n");
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }
@@ -456,16 +489,16 @@ test("management tools use fixed API routes and redact credential-bearing respon
 
   try {
     const outputs = [
-      await callTool("claim_tenant", { project_root: temporaryRoot }, { fetch }),
+      await callTool("claim_tenant", { project_root: temporaryRoot, confirmed: true }, { fetch }),
       await callTool("tenant_status", { project_root: temporaryRoot }, { fetch }),
       await callTool(
         "provision_resource",
-        { project_root: temporaryRoot, resource: "postgres", configuration: { region: "apac" } },
+        { project_root: temporaryRoot, resource: "postgres", configuration: { region: "apac" }, confirmed: true },
         { fetch },
       ),
       await callTool(
         "provision_resource",
-        { project_root: temporaryRoot, resources: ["postgres", "redis"] },
+        { project_root: temporaryRoot, resources: ["postgres", "redis"], confirmed: true },
         { fetch },
       ),
     ];
@@ -551,6 +584,17 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
     assert.equal(tool.inputSchema.type, "object", `${tool.name} must declare an object input schema`);
     assert.equal(tool.inputSchema.additionalProperties ?? false, false);
     assert.doesNotMatch(tool.name, /shell|exec|request|fetch|proxy/i);
+    if (tool.name === "tenant_status") {
+      assert.equal(tool.inputSchema.properties.confirmed, undefined);
+      assert.equal(tool._meta, undefined);
+    } else {
+      const variants = tool.inputSchema.oneOf || [tool.inputSchema];
+      for (const variant of variants) {
+        assert.deepEqual(variant.properties.confirmed?.enum, [true], tool.name);
+        assert.equal(variant.required.includes("confirmed"), true, tool.name);
+      }
+      assert.equal(tool._meta?.["anthropic/requiresUserInteraction"], true, tool.name);
+    }
   }
   const provision = tools.find((tool) => tool.name === "provision_resource");
   assert.ok(
@@ -631,6 +675,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
+  assert.match(readme, /@cohesivity\/init@0\.6\.6/);
+  assert.doesNotMatch(readme, /curl\s+-fsSL[\s\S]*?\|\s*bash/);
   assert.match(readme, /claude plugin marketplace add \.\//);
   assert.doesNotMatch(readme, /claude plugin marketplace add \.\n/);
   assert.match(readme, /mcp_servers:\n  <qualified-server-name>:/);

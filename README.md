@@ -12,25 +12,26 @@ portable root as a Claude plugin.
 
 The dependency-free **local `cohesivity-local` stdio MCP server** needs Node
 18 or newer but no Cohesivity account. Its primary `create_tenant` tool accepts
-an absolute project root, fetches the canonical quickstart, and executes it in
-that directory with `--no-plugin`. It returns only non-secret tenant metadata.
+an absolute project root, creates the tenant through the fixed Cohesivity API,
+and writes `.cohesivity` without executing a shell or forwarding the host
+environment. In Claude Code, the root must exactly match the
+`CLAUDE_PROJECT_DIR` supplied by the client. It returns only non-secret tenant
+metadata.
 The same server exposes fixed claim, status, and provision operations against
 the Cohesivity Management API. Its provision tool accepts either one resource
 or a resource list, so single and bulk provisioning share one tool. Those
 operations read the project's `.cohesivity` management credential internally,
 project allowlisted responses, and never expose either `coh_*` value. There is
-no generic shell command or arbitrary HTTP proxy.
+no generic shell command or arbitrary HTTP proxy. Every mutating tool requires
+literal `confirmed: true`, and Claude Code is instructed to prompt on every
+such call even in permissive permission modes.
 
-Node-less clients do not run this local component. They retain the documented
-quickstart fallback from the skill:
-
-```bash
-curl -fsSL https://cohesivity.ai/quickstart.sh | bash
-```
-
-This package does not claim or generate native binary support. With the user's
-agreement, either bootstrap path can create a free ephemeral tenant that
-expires after 72 hours unless claimed.
+Node-less clients do not run this local component, and this package does not
+claim or generate native binary support. When no MCP is available, the skill
+uses the exact published `@cohesivity/init@0.6.6` package instead of mutable
+remote shell code. With the user's explicit authorization, either bootstrap
+path can create a free ephemeral tenant that expires after 72 hours unless
+claimed.
 
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: it requires Cohesivity sign-in
@@ -39,7 +40,8 @@ grant can create the first tenant and manage current or future owned tenants;
 an optional tenant chosen during consent is only a default, and ownership is
 checked again on every tenant call. The endpoint returns an OAuth challenge to
 compatible MCP clients. No package contains a bearer token, literal auth header,
-client secret, or other credential.
+client secret, or other credential. The remote server also requires literal
+`confirmed: true` on every mutating tool.
 
 ## Supported package surfaces
 
@@ -132,10 +134,10 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@f97e0d2ac8a653b7d54d1bb6e70aee78a8887e60`:
+`cohesivity-org/cohesivity-skill@78d6d26c09ea955e2ab2392a62d980817bcabb39`:
 
-- skill metadata version: `84fbece3c00b`
-- SHA-256: `3b0d9cda6167263cb35a4e3b54ed455113318a1b24cb5e341f26843456b0b589`
+- skill metadata version: `2923f0623a63`
+- SHA-256: `f995c85b94ac5198eb0bdb45c7847d76092f7905cb6d7802e5e0caa6c2d8e502`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -153,7 +155,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.2/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.3/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
@@ -181,8 +183,9 @@ Neither `coh_management_key` nor `coh_application_key` belongs in browser code,
 logs, screenshots, chat, plugin manifests, or MCP configuration. Claiming a
 tenant, provisioning paid resources, upgrading a plan, and provisioning a
 managed agent remain explicit consent gates. The local MCP parses credentials
-as data, never sources the file, rejects symlinked credential files, and uses
-fixed named Management API routes only.
+as data, never sources the file, rejects symlinked credential and `.gitignore`
+files, and uses fixed named Management API routes only. In Claude Code it also
+rejects a project root outside the client-supplied project directory.
 
 ## Docs
 
