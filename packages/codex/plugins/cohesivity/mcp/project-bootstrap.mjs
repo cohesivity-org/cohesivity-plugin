@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
 import {
   accessSync,
+  appendFileSync,
+  closeSync,
   constants as fsConstants,
+  fstatSync,
   lstatSync,
+  openSync,
   readFileSync,
   realpathSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { isAbsolute, normalize, parse, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
-export const QUICKSTART_URL = "https://cohesivity.ai/quickstart.sh";
 export const MANAGEMENT_API_URL = "https://cohesivity.ai/api/";
 export const REMOTE_MCP_URL = "https://cohesivity.ai/mcp/manage";
 
@@ -37,10 +40,10 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "3.0.2";
+export const SERVER_VERSION = "3.0.3";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
-const MAX_QUICKSTART_BYTES = 1024 * 1024;
+const MAX_GITIGNORE_BYTES = 1024 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
 const SECRET_VALUE = /(?:coh_(?:man|app)_[a-z0-9]+|Bearer\s+[^\s"']+)/gi;
@@ -129,6 +132,17 @@ const projectRootProperty = {
   description: "Absolute path to the existing project root that owns .cohesivity.",
 };
 
+const confirmedProperty = {
+  type: "boolean",
+  enum: [true],
+  description:
+    "Set to true only when the current user request explicitly authorized this exact mutation.",
+};
+
+const requiresUserInteraction = {
+  "anthropic/requiresUserInteraction": true,
+};
+
 const noConfigurationResources = RESOURCE_NAMES.filter(
   (name) => !["inbox", "postgres", "realtime", "social-login", "vector-database"].includes(name),
 );
@@ -214,8 +228,9 @@ const provisionInputSchema = {
       properties: {
         project_root: projectRootProperty,
         resource: { enum: noConfigurationResources },
+        confirmed: confirmedProperty,
       },
-      required: ["project_root", "resource"],
+      required: ["project_root", "resource", "confirmed"],
       additionalProperties: false,
     },
     ...[
@@ -230,11 +245,12 @@ const provisionInputSchema = {
         project_root: projectRootProperty,
         resource: { const: resource },
         configuration,
+        confirmed: confirmedProperty,
       },
       required:
         resource === "social-login" || resource === "vector-database"
-          ? ["project_root", "resource", "configuration"]
-          : ["project_root", "resource"],
+          ? ["project_root", "resource", "configuration", "confirmed"]
+          : ["project_root", "resource", "confirmed"],
       additionalProperties: false,
     })),
     {
@@ -249,8 +265,9 @@ const provisionInputSchema = {
           items: { enum: RESOURCE_NAMES },
         },
         configurations: bulkConfigurationsSchema,
+        confirmed: confirmedProperty,
       },
-      required: ["project_root", "resources"],
+      required: ["project_root", "resources", "confirmed"],
       additionalProperties: false,
     },
   ],
@@ -261,11 +278,11 @@ export const TOOLS = Object.freeze([
     name: "create_tenant",
     title: "Create or reuse a Cohesivity project tenant",
     description:
-      "Fetches the canonical Cohesivity quickstart and runs it locally with --no-plugin in an explicitly supplied project root. Returns only non-secret tenant metadata.",
+      "Creates an ephemeral tenant through the fixed Cohesivity API, writes its credentials only inside an explicitly supplied project root, and returns only non-secret metadata.",
     inputSchema: {
       type: "object",
-      properties: { project_root: projectRootProperty },
-      required: ["project_root"],
+      properties: { project_root: projectRootProperty, confirmed: confirmedProperty },
+      required: ["project_root", "confirmed"],
       additionalProperties: false,
     },
     outputSchema: {
@@ -279,6 +296,7 @@ export const TOOLS = Object.freeze([
       required: ["tenant_id"],
       additionalProperties: false,
     },
+    _meta: requiresUserInteraction,
   },
   {
     name: "claim_tenant",
@@ -287,8 +305,8 @@ export const TOOLS = Object.freeze([
       "Starts the Cohesivity claim handoff using the project credential internally. Claiming is a consent gate; call only after explicit user approval.",
     inputSchema: {
       type: "object",
-      properties: { project_root: projectRootProperty },
-      required: ["project_root"],
+      properties: { project_root: projectRootProperty, confirmed: confirmedProperty },
+      required: ["project_root", "confirmed"],
       additionalProperties: false,
     },
     outputSchema: {
@@ -300,6 +318,7 @@ export const TOOLS = Object.freeze([
       required: ["tenant_id", "approval_url"],
       additionalProperties: false,
     },
+    _meta: requiresUserInteraction,
   },
   {
     name: "tenant_status",
@@ -328,6 +347,7 @@ export const TOOLS = Object.freeze([
     description:
       "Provisions one resource with resource/configuration, or several with resources/configurations. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
     inputSchema: provisionInputSchema,
+    _meta: requiresUserInteraction,
     outputSchema: {
       type: "object",
       properties: {
@@ -369,7 +389,7 @@ function exactObject(value, required, optional = []) {
   return value;
 }
 
-export function validateProjectRoot(value) {
+export function validateProjectRoot(value, workspaceRoot = process.env.CLAUDE_PROJECT_DIR) {
   if (typeof value !== "string" || value.length === 0) {
     fail("project_root must be a non-empty absolute path.");
   }
@@ -391,6 +411,19 @@ export function validateProjectRoot(value) {
     if (error instanceof SafeError) throw error;
     fail("project_root must be an existing, accessible directory.");
   }
+  if (workspaceRoot !== undefined && workspaceRoot !== "") {
+    let workspace;
+    try {
+      workspace = realpathSync.native(workspaceRoot);
+      if (!statSync(workspace).isDirectory()) fail("The configured workspace root must name a directory.");
+    } catch (error) {
+      if (error instanceof SafeError) throw error;
+      fail("The configured workspace root is invalid.");
+    }
+    if (canonical !== workspace) {
+      fail("project_root must match the current Claude Code project directory.");
+    }
+  }
   return canonical.endsWith(sep) ? canonical.slice(0, -1) : canonical;
 }
 
@@ -400,18 +433,112 @@ function credentialPath(projectRoot) {
   return path;
 }
 
-function readCredentialFields(projectRoot, requireManagementKey = false) {
-  const path = credentialPath(projectRoot);
-  let contents;
+function gitignorePath(projectRoot) {
+  const path = resolve(projectRoot, ".gitignore");
+  if (path !== `${projectRoot}${sep}.gitignore`) fail("Invalid gitignore path.");
+  return path;
+}
+
+function readRegularFile(path, label, missingMessage, oversizedMessage, maxBytes) {
+  let descriptor;
   try {
-    const status = lstatSync(path);
-    if (status.isSymbolicLink() || !status.isFile()) fail(".cohesivity must be a regular file.");
-    if (status.size > MAX_CREDENTIAL_FILE_BYTES) fail(".cohesivity is unexpectedly large.");
-    contents = readFileSync(path, "utf8");
+    const initial = lstatSync(path);
+    if (initial.isSymbolicLink() || !initial.isFile()) fail(`${label} must be a regular file.`);
+    if (initial.size > maxBytes) fail(oversizedMessage);
+    descriptor = openSync(
+      path,
+      fsConstants.O_RDONLY |
+        (fsConstants.O_NONBLOCK ?? 0) |
+        (fsConstants.O_NOFOLLOW ?? 0),
+    );
+    const opened = fstatSync(descriptor);
+    const current = lstatSync(path);
+    if (
+      current.isSymbolicLink() ||
+      !opened.isFile() ||
+      !current.isFile() ||
+      opened.dev !== current.dev ||
+      opened.ino !== current.ino
+    ) {
+      fail(`${label} must be a regular file.`);
+    }
+    if (opened.size > maxBytes) fail(oversizedMessage);
+    return readFileSync(descriptor, "utf8");
   } catch (error) {
     if (error instanceof SafeError) throw error;
-    fail("No readable .cohesivity file exists in project_root.");
+    fail(missingMessage);
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
+}
+
+function ensureCredentialIgnored(projectRoot) {
+  const path = gitignorePath(projectRoot);
+  let status;
+  try {
+    status = lstatSync(path);
+  } catch (error) {
+    if (error?.code !== "ENOENT") fail("Could not validate .gitignore in project_root.");
+    try {
+      writeFileSync(path, ".cohesivity\n", { encoding: "utf8", flag: "wx", mode: 0o600 });
+      return;
+    } catch {
+      fail("Could not create .gitignore safely in project_root.");
+    }
+  }
+  if (status.isSymbolicLink() || !status.isFile()) fail(".gitignore must be a regular file.");
+  const contents = readRegularFile(
+    path,
+    ".gitignore",
+    "No readable .gitignore file exists in project_root.",
+    ".gitignore is unexpectedly large.",
+    MAX_GITIGNORE_BYTES,
+  );
+  const lastEffectiveRule = contents
+    .split(/\r?\n/u)
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .at(-1);
+  if (lastEffectiveRule === ".cohesivity") return;
+
+  let descriptor;
+  try {
+    descriptor = openSync(
+      path,
+      fsConstants.O_WRONLY |
+        fsConstants.O_APPEND |
+        (fsConstants.O_NONBLOCK ?? 0) |
+        (fsConstants.O_NOFOLLOW ?? 0),
+    );
+    const opened = fstatSync(descriptor);
+    const current = lstatSync(path);
+    if (
+      current.isSymbolicLink() ||
+      !opened.isFile() ||
+      !current.isFile() ||
+      opened.dev !== current.dev ||
+      opened.ino !== current.ino
+    ) {
+      fail(".gitignore must be a regular file.");
+    }
+    if (opened.size > MAX_GITIGNORE_BYTES) fail(".gitignore is unexpectedly large.");
+    appendFileSync(descriptor, `${contents.length > 0 && !contents.endsWith("\n") ? "\n" : ""}.cohesivity\n`, "utf8");
+  } catch (error) {
+    if (error instanceof SafeError) throw error;
+    fail("Could not update .gitignore safely in project_root.");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function readCredentialFields(projectRoot, requireManagementKey = false) {
+  const path = credentialPath(projectRoot);
+  const contents = readRegularFile(
+    path,
+    ".cohesivity",
+    "No readable .cohesivity file exists in project_root.",
+    ".cohesivity is unexpectedly large.",
+    MAX_CREDENTIAL_FILE_BYTES,
+  );
 
   const fields = Object.create(null);
   const allowedFields = new Set([
@@ -456,66 +583,78 @@ function safeTenantMetadata(projectRoot) {
   return metadata;
 }
 
-async function fetchQuickstart(fetchImpl) {
+function validateGenesisDocument(value) {
+  if (!isRecord(value)) fail("The Cohesivity tenant response is invalid.");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/u.test(value.tenant_id ?? "")) {
+    fail("The Cohesivity tenant response has an invalid tenant_id.");
+  }
+  if (!/^coh_man_[a-z0-9]{20}$/u.test(value.coh_management_key ?? "")) {
+    fail("The Cohesivity tenant response has an invalid management credential.");
+  }
+  if (!/^coh_app_[a-z0-9]{20}$/u.test(value.coh_application_key ?? "")) {
+    fail("The Cohesivity tenant response has an invalid application credential.");
+  }
+  const expiresAt = Date.parse(value.expires_at ?? "");
+  if (!Number.isFinite(expiresAt)) fail("The Cohesivity tenant response has an invalid expiry.");
+  if (value.tenant_lifecycle !== "ephemeral") {
+    fail("The Cohesivity tenant response has an invalid lifecycle.");
+  }
+  if (!/^[A-Za-z0-9._-]{1,100}$/u.test(value.runtime_profile ?? "")) {
+    fail("The Cohesivity tenant response has an invalid runtime profile.");
+  }
+  return {
+    tenant_id: value.tenant_id,
+    coh_management_key: value.coh_management_key,
+    coh_application_key: value.coh_application_key,
+    expires_at: new Date(expiresAt).toISOString(),
+    tenant_lifecycle: value.tenant_lifecycle,
+    runtime_profile: value.runtime_profile,
+  };
+}
+
+function credentialFileContents(value) {
+  return [
+    "# .cohesivity - Cohesivity tenant credentials. Do not commit this file.",
+    `tenant_id=${value.tenant_id}`,
+    `coh_management_key=${value.coh_management_key}`,
+    `coh_application_key=${value.coh_application_key}`,
+    `expires_at=${value.expires_at}`,
+    `tenant_lifecycle=${value.tenant_lifecycle}`,
+    `runtime_profile=${value.runtime_profile}`,
+    "",
+  ].join("\n");
+}
+
+async function fetchGenesis(fetchImpl) {
+  const url = new URL("genesis?format=json", MANAGEMENT_API_URL);
   let response;
   try {
-    response = await fetchImpl(QUICKSTART_URL, {
-      redirect: "follow",
-      headers: { "User-Agent": USER_AGENT },
+    response = await fetchImpl(url, {
+      method: "POST",
+      redirect: "error",
+      headers: { Accept: "application/json", "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    fail("Could not fetch the canonical Cohesivity quickstart.");
+    fail("Could not create the Cohesivity project tenant.");
   }
-  if (!response.ok || response.url !== QUICKSTART_URL) {
-    fail("Could not fetch the canonical Cohesivity quickstart.");
+  if (!response.ok || response.status !== 201 || (response.url && response.url !== url.href)) {
+    fail("Could not create the Cohesivity project tenant.");
   }
   const declaredLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_QUICKSTART_BYTES) {
-    fail("The canonical Cohesivity quickstart is unexpectedly large.");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
+    fail("The Cohesivity tenant response is unexpectedly large.");
   }
-  const script = Buffer.from(await response.arrayBuffer());
-  if (
-    script.length === 0 ||
-    script.length > MAX_QUICKSTART_BYTES ||
-    script.includes(0) ||
-    !script.subarray(0, 19).toString("utf8").startsWith("#!/usr/bin/env bash")
-  ) {
-    fail("The canonical Cohesivity quickstart is invalid.");
+  const text = await response.text();
+  if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
+    fail("The Cohesivity tenant response is unexpectedly large.");
   }
-  return script;
-}
-
-export function executeQuickstart(script, projectRoot, spawnImpl = spawn) {
-  return new Promise((resolvePromise, rejectPromise) => {
-    let settled = false;
-    let child;
-    try {
-      child = spawnImpl("bash", ["-s", "--", "--no-plugin"], {
-        cwd: projectRoot,
-        env: process.env,
-        shell: false,
-        stdio: ["pipe", "ignore", "ignore"],
-        windowsHide: true,
-      });
-    } catch {
-      fail("Could not start the canonical Cohesivity quickstart.");
-    }
-
-    child.once("error", () => {
-      if (settled) return;
-      settled = true;
-      rejectPromise(new SafeError("Could not start the canonical Cohesivity quickstart."));
-    });
-    child.once("close", (code, signal) => {
-      if (settled) return;
-      settled = true;
-      if (code === 0 && signal === null) resolvePromise();
-      else rejectPromise(new SafeError("The canonical Cohesivity quickstart did not complete successfully."));
-    });
-    child.stdin.once("error", () => {});
-    child.stdin.end(script);
-  });
+  try {
+    return validateGenesisDocument(JSON.parse(text));
+  } catch (error) {
+    if (error instanceof SafeError) throw error;
+    fail("The Cohesivity tenant response is invalid.");
+  }
 }
 
 function validateResource(value) {
@@ -719,25 +858,38 @@ async function managementRequest(
 
 export async function callTool(name, argumentsValue, dependencies = {}) {
   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
-  const spawnImpl = dependencies.spawn ?? spawn;
 
   if (name === "create_tenant") {
-    const args = exactObject(argumentsValue, ["project_root"]);
+    const args = exactObject(argumentsValue, ["project_root", "confirmed"]);
+    if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
     const projectRoot = validateProjectRoot(args.project_root);
     const path = credentialPath(projectRoot);
     try {
-      if (lstatSync(path).isSymbolicLink()) fail(".cohesivity must not be a symbolic link.");
+      lstatSync(path);
+      const metadata = safeTenantMetadata(projectRoot);
+      ensureCredentialIgnored(projectRoot);
+      return metadata;
     } catch (error) {
       if (error instanceof SafeError) throw error;
       if (error?.code !== "ENOENT") fail("Could not validate the project credential path.");
     }
-    const script = await fetchQuickstart(fetchImpl);
-    await executeQuickstart(script, projectRoot, spawnImpl);
+    ensureCredentialIgnored(projectRoot);
+    const tenant = await fetchGenesis(fetchImpl);
+    try {
+      writeFileSync(path, credentialFileContents(tenant), {
+        encoding: "utf8",
+        flag: "wx",
+        mode: 0o600,
+      });
+    } catch {
+      fail("Could not write .cohesivity safely in project_root.");
+    }
     return safeTenantMetadata(projectRoot);
   }
 
   if (name === "claim_tenant") {
-    const args = exactObject(argumentsValue, ["project_root"]);
+    const args = exactObject(argumentsValue, ["project_root", "confirmed"]);
+    if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
     const projectRoot = validateProjectRoot(args.project_root);
     const credentials = readCredentialFields(projectRoot, true);
     const response = await managementRequest(projectRoot, "POST", "claim/url", undefined, fetchImpl);
@@ -783,7 +935,8 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       fail("Provide exactly one of resource or resources.");
     }
     if (hasResources) {
-      const args = exactObject(argumentsValue, ["project_root", "resources"], ["configurations"]);
+      const args = exactObject(argumentsValue, ["project_root", "resources", "confirmed"], ["configurations"]);
+      if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
       const projectRoot = validateProjectRoot(args.project_root);
       if (
         !Array.isArray(args.resources) ||
@@ -817,7 +970,8 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       return { resources, result };
     }
 
-    const args = exactObject(argumentsValue, ["project_root", "resource"], ["configuration"]);
+    const args = exactObject(argumentsValue, ["project_root", "resource", "confirmed"], ["configuration"]);
+    if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
     const projectRoot = validateProjectRoot(args.project_root);
     const resource = validateResource(args.resource);
     const configurable = ["inbox", "postgres", "realtime", "social-login", "vector-database"].includes(
