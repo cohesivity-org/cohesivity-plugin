@@ -503,7 +503,13 @@ function ensureCredentialIgnored(projectRoot) {
 
   let descriptor;
   try {
-    descriptor = openSync(path, "a");
+    descriptor = openSync(
+      path,
+      fsConstants.O_WRONLY |
+        fsConstants.O_APPEND |
+        (fsConstants.O_NONBLOCK ?? 0) |
+        (fsConstants.O_NOFOLLOW ?? 0),
+    );
     const opened = fstatSync(descriptor);
     const current = lstatSync(path);
     if (

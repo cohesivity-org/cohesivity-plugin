@@ -333,6 +333,15 @@ test("local MCP source is byte-identical in every installable package", () => {
   }
 });
 
+test("gitignore append reopens the validated file without following or blocking", () => {
+  const source = readFileSync(LOCAL_MCP_SOURCE, "utf8");
+  assert.doesNotMatch(source, /openSync\(path, "a"\)/);
+  assert.match(
+    source,
+    /fsConstants\.O_WRONLY\s*\|\s*fsConstants\.O_APPEND\s*\|\s*\(fsConstants\.O_NONBLOCK \?\? 0\)\s*\|\s*\(fsConstants\.O_NOFOLLOW \?\? 0\)/,
+  );
+});
+
 test("create_tenant provisions through the fixed API and writes only project credentials", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-project-root-"));
   const managementKey = "coh_man_1234567890abcdefghij";
