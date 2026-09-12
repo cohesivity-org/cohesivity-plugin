@@ -178,6 +178,10 @@ stamp is deliberate and reproducible.
 
 ## Safety
 
+Report vulnerabilities privately using [SECURITY.md](SECURITY.md). It also
+documents the consent, credential, and mutable live-documentation boundaries.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for account-free package verification.
+
 Project credentials live in `.cohesivity`, which must remain gitignored.
 Neither `coh_management_key` nor `coh_application_key` belongs in browser code,
 logs, screenshots, chat, plugin manifests, or MCP configuration. Claiming a
