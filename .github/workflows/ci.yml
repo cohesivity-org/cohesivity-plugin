@@ -1,0 +1,38 @@
+name: Validate plugin packages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Fetch immutable archive source
+        # Source stamping happens before the PR's squash merge, so this commit
+        # is not necessarily an ancestor of main or the checkout's merge ref.
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Invalid package version');
+          const manifest = JSON.parse(readFileSync(`artifacts/v${version}/install-manifest.v1.json`, 'utf8'));
+          const commit = manifest.source.commit;
+          if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error('Invalid archive source commit');
+          execFileSync('git', ['fetch', '--no-tags', 'origin', commit], { stdio: 'inherit' });
+          NODE
+      - run: npm run check
+      - run: npm test
