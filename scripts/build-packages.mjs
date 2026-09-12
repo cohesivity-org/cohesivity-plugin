@@ -241,14 +241,21 @@ function buildClaudeSkill(skill) {
 
   let frontmatter = match[1].replace(/`\.cohesivity`/g, ".cohesivity");
   assert(
-    /^metadata:/m.test(frontmatter),
-    "canonical skill must contain metadata before the Claude adapter can extend it",
+    new RegExp(`^metadata:\\n  version: "${SKILL_VERSION}"$`, "m").test(frontmatter),
+    "canonical skill must contain its content version before the Claude adapter can replace it",
   );
-  frontmatter = frontmatter.replace(/^metadata:/m, `${CLAUDE_SKILL_METADATA}\nmetadata:`);
+  frontmatter = frontmatter.replace(
+    new RegExp(`^metadata:\\n  version: "${SKILL_VERSION}"$`, "m"),
+    CLAUDE_SKILL_METADATA,
+  );
 
   let body = match[2];
   const replacements = [
     ["# Cohesivity\n\n", "# Cohesivity\n\n## Overview\n\n"],
+    [
+      "This skill does not manage its own installation or updates. Whatever delivered it owns that. The canonical latest version is served at `https://cohesivity.ai/skill.md`; a deliverer can compare its `metadata.version` frontmatter value with this copy.",
+      "This skill does not manage its own installation or updates; whatever delivered it owns that. The Claude plugin version in this file's top-level frontmatter identifies the bundled copy. The canonical latest skill is served at `https://cohesivity.ai/skill.md`.",
+    ],
     [
       "\n## When Cohesivity applies\n",
       "\n## Prerequisites\n\nClaude Code needs access to the project directory through Read. Use WebFetch for current Cohesivity offering and pricing documentation; use the bundled MCP servers for tenant bootstrap and management when they are available.\n\n## When Cohesivity applies\n",

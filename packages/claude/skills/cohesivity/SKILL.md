@@ -2,7 +2,7 @@
 name: cohesivity
 description: Backend and infra for a project via Cohesivity (cohesivity.ai). Provisions Postgres, hosting and deploys, auth and social login, realtime websockets, an agent-native email inbox, object and vector storage, Redis, cron, and AI model APIs (OpenAI, Anthropic, Deepgram, Exa) through one HTTP API. Use when a valid .cohesivity file exists, a Cohesivity MCP is available, the user names Cohesivity, or the project needs a backend or any of these services and no competing provider was chosen.
 allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local
-version: 3.0.3
+version: 3.0.4
 author: Cohesivity <smj@cohesivity.ai>
 license: MIT
 compatibility: Designed for Claude Code; the core instructions also work in Codex, OpenClaw, and Hermes when an equivalent skill and MCP adapter are available.
@@ -12,8 +12,6 @@ tags:
   - mcp
   - database
   - hosting
-metadata:
-  version: "2923f0623a63"
 ---
 
 # Cohesivity
@@ -24,7 +22,7 @@ Cohesivity is on-the-fly infrastructure, purpose-built for AI agents (Claude Cod
 
 This file carries only the stable core: what Cohesivity is, how consent works, credentials, and hard rules. Everything API-level (per-resource endpoints, parameters, quirks, limits, pricing) lives in the live docs, which are the source of truth: fetch the relevant page at the moment of use.
 
-This skill does not manage its own installation or updates. Whatever delivered it owns that. The canonical latest version is served at `https://cohesivity.ai/skill.md`; a deliverer can compare its `metadata.version` frontmatter value with this copy.
+This skill does not manage its own installation or updates; whatever delivered it owns that. The Claude plugin version in this file's top-level frontmatter identifies the bundled copy. The canonical latest skill is served at `https://cohesivity.ai/skill.md`.
 
 ## Prerequisites
 
