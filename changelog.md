@@ -36,3 +36,16 @@ validates the plugin repository only and does not deploy Cohesivity.
 - Claude CLI validates the native plugin and root marketplace manifests.
 - Workflow YAML parses; its archive-source fetch step succeeds locally.
 - `git diff --check` passes. No live tenant or resource was created.
+
+## 2026-09-12 — Check the documented Node minimum in CI
+
+The review of PR #13 identified that Node 24 alone cannot catch regressions in
+the documented Node 18 minimum. The validation workflow now runs the full
+package and test suite on both versions, independently, and CONTRIBUTING.md
+explains that the older runtime is a compatibility target. No package or
+runtime behavior changes.
+
+The workflow YAML and both matrix values were checked locally; all 27 tests
+and npm run check pass on Node 24.18.0. The local npx Node 18 attempt still
+resolved Node 24, so it is not counted as Node 18 verification; the new GitHub
+job must establish that result. git diff --check passes.

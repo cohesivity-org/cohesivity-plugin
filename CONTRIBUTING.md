@@ -30,9 +30,10 @@ files are created. These checks do not create tenants, provision resources, or
 test an authenticated remote session. Native client installation and OAuth
 testing are separate; do not claim them from these results.
 
-CI runs the same checks on Node 24 with read-only repository permissions, no
-application secrets, and commit-pinned Actions. The local MCP's documented
-minimum remains Node 18; the CI build version does not change that minimum.
+CI runs the same checks on Node 18 and 24 with read-only repository permissions,
+no application secrets, and commit-pinned Actions. Node 18 checks preserve the
+local MCP's documented minimum; they are compatibility tests, not a
+recommendation to deploy an unsupported Node release.
 
 If a checkout lacks the immutable archive source commit needed by the tests,
 fetch the `source.commit` named in
