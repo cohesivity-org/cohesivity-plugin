@@ -27,6 +27,7 @@ const input = [
   request(3, "ping", {}),
   "{invalid-json",
   request(4, "ping", {}),
+  request(5, "tools/call", { name: "create_tenant", arguments: {}, _meta: { progressToken: "codex-call" } }),
   "",
 ].join("\n");
 
@@ -47,7 +48,7 @@ for (const packageRoot of packageRoots) {
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.stderr, "");
       const replies = result.stdout.trim().split("\n").map((line) => JSON.parse(line));
-      assert.deepEqual(replies.map((reply) => reply.id), [1, 2, 3, null, 4]);
+      assert.deepEqual(replies.map((reply) => reply.id), [1, 2, 3, null, 4, 5]);
       assert.ok(replies.every((reply) => reply.jsonrpc === "2.0"));
       assert.equal(replies[0].result.protocolVersion, "2025-06-18");
       assert.equal(replies[0].result.serverInfo.version, version);
@@ -58,6 +59,8 @@ for (const packageRoot of packageRoots) {
       assert.deepEqual(replies[2].result, {});
       assert.equal(replies[3].error.code, -32700);
       assert.deepEqual(replies[4].result, {});
+      assert.equal(replies[5].result.isError, true);
+      assert.equal(replies[5].result.content[0].text, "Missing required argument: project_root.");
       assert.deepEqual(readdirSync(temporaryRoot), []);
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });

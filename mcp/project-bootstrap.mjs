@@ -40,7 +40,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "3.0.4";
+export const SERVER_VERSION = "3.0.5";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_GITIGNORE_BYTES = 1024 * 1024;
@@ -1022,7 +1022,8 @@ export async function handleRequest(request, dependencies = {}) {
   }
   if (request.method === "tools/call") {
     try {
-      const params = exactObject(request.params, ["name"], ["arguments"]);
+      const params = exactObject(request.params, ["name"], ["arguments", "_meta"]);
+      if (params._meta !== undefined && !isRecord(params._meta)) fail("_meta must be an object.");
       if (typeof params.name !== "string") fail("Tool name must be a string.");
       const result = await callTool(params.name, params.arguments ?? {}, dependencies);
       const text = JSON.stringify(result);

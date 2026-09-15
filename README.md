@@ -26,6 +26,11 @@ no generic shell command or arbitrary HTTP proxy. Every mutating tool requires
 literal `confirmed: true`, and Claude Code is instructed to prompt on every
 such call even in permissive permission modes.
 
+Tool-call requests accept optional object-valued `_meta` alongside `name` and
+`arguments`, including Codex request metadata. Metadata is not forwarded to
+the API or returned in tool results; it does not relax tool arguments or
+confirmation requirements.
+
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
 uses the exact published `@cohesivity/init@0.6.6` package instead of mutable
@@ -155,7 +160,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.4/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.5/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
