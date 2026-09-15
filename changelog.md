@@ -85,3 +85,11 @@ Package/archive generation checks and syntax checks pass. On Node 24.18.0,
 All 9 metadata and stdio tests pass on Node 18.20.8. The metadata regressions
 failed before the fix. Tests use fake credentials and mocked HTTP, with no
 live tenant creation or client installation. `git diff --check` passes.
+
+## 2026-09-15 — Stamp the v3.0.5 installer manifest
+
+The v3.0.5 manifest points to archive source commit
+`49e9458`. No archive or source bytes changed during stamping.
+All 30 tests, including immutable archive comparison, and `npm run check`
+pass on both Node 18.20.8 and Node 24.18.0. This completes the plugin artifact
+release; advancing the shell installer pin remains a separate change.
