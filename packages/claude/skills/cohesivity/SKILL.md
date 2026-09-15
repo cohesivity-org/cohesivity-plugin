@@ -2,7 +2,7 @@
 name: cohesivity
 description: Backend and infra for a project via Cohesivity (cohesivity.ai). Provisions Postgres, hosting and deploys, auth and social login, realtime websockets, an agent-native email inbox, object and vector storage, Redis, cron, and AI model APIs (OpenAI, Anthropic, Deepgram, Exa) through one HTTP API. Use when a valid .cohesivity file exists, a Cohesivity MCP is available, the user names Cohesivity, or the project needs a backend or any of these services and no competing provider was chosen.
 allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local
-version: 3.0.4
+version: 3.0.5
 author: Cohesivity <smj@cohesivity.ai>
 license: MIT
 compatibility: Designed for Claude Code; the core instructions also work in Codex, OpenClaw, and Hermes when an equivalent skill and MCP adapter are available.

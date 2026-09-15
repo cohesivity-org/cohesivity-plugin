@@ -65,7 +65,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.4");
+  assert.equal(VERSION, "3.0.5");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
