@@ -35,6 +35,7 @@ import {
 import {
   MANAGEMENT_API_URL,
   REMOTE_MCP_URL,
+  QUICKSTART_URL,
   callTool,
   handleRequest,
   redactApiOutput,
@@ -65,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.6");
+  assert.equal(VERSION, "4.0.0");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -164,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "1c65e6d1bf4690d7ee3b046bcd8251387b4f701b");
-  assert.equal(SKILL_VERSION, "d309e051978d");
-  assert.equal(canonical.length, 16060);
+  assert.equal(SKILL_SOURCE_COMMIT, "cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981");
+  assert.equal(SKILL_VERSION, "7f2fbc207f1d");
+  assert.equal(canonical.length, 18933);
   assert.equal(
     SKILL_SHA256,
-    "10b03850ecd87564b457d2df0fcb1a5e6cf3ae205fb695c27114be6c95018e59",
+    "755f0fed995635cc722ea7ca0987b91e16749b5dcc3fe2a80ae0e540389005db",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -210,7 +211,7 @@ test("every skill documents exactly the four supported MCP tools and fails close
     assert.match(operations, /Every mutation still requires `confirmed: true`/);
     assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not supported/);
     assert.match(operations, /Do not invent a tool or bypass MCP with direct HTTP, a CLI, or a script, even with user approval/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.7\.1/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.0/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -374,7 +375,7 @@ test("gitignore append reopens the validated file without following or blocking"
   );
 });
 
-test("create_tenant provisions through the fixed API and writes only project credentials", async () => {
+test("create_tenant runs the fixed quickstart and returns only project metadata", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-project-root-"));
   const managementKey = "coh_man_1234567890abcdefghij";
   const applicationKey = "coh_app_abcdefghij1234567890";
@@ -383,30 +384,21 @@ test("create_tenant provisions through the fixed API and writes only project cre
   try {
     const fetch = async (url, options) => {
       requests.push({ url: String(url), options });
-      assert.equal(String(url), `${MANAGEMENT_API_URL}genesis?format=json`);
-      assert.equal(options.method, "POST");
+      assert.equal(String(url), QUICKSTART_URL);
+      assert.equal(options.method, "GET");
       assert.equal(options.redirect, "error");
       assert.match(options.headers["User-Agent"], /^cohesivity-project-bootstrap\//);
-      return {
-        ok: true,
-        status: 201,
-        url: `${MANAGEMENT_API_URL}genesis?format=json`,
-        headers: new Headers({ "content-type": "application/json" }),
-        text: async () => JSON.stringify({
-          tenant_id: "swift-fox-running",
-          coh_management_key: managementKey,
-          coh_application_key: applicationKey,
-          expires_at: "2026-08-13T00:00:00.000Z",
-          tenant_lifecycle: "ephemeral",
-          runtime_profile: "stable-v1",
-        }),
-      };
+      return new Response("#!/bin/bash\n");
     };
 
     const output = await callTool(
       "create_tenant",
       { project_root: temporaryRoot, confirmed: true },
-      { fetch },
+      { fetch, env: { HOME: temporaryRoot }, runQuickstart: async (_script, args, options) => {
+        assert.deepEqual(args, []);
+        assert.equal(options.cwd, temporaryRoot);
+        writeFileSync(join(temporaryRoot, ".cohesivity"), `tenant_id=swift-fox-running\ncoh_management_key=${managementKey}\ncoh_application_key=${applicationKey}\nexpires_at=2026-08-13T00:00:00.000Z\ntenant_lifecycle=ephemeral\nruntime_profile=stable-v1\n`, { mode: 0o600 });
+      } },
     );
     assert.deepEqual(output, {
       tenant_id: "swift-fox-running",
@@ -540,23 +532,14 @@ test("create_tenant appends an effective ignore rule after negation and leading 
   writeFileSync(join(temporaryRoot, ".gitignore"), ".cohesivity\n!.cohesivity\n .cohesivity\n");
   assert.equal(spawnSync("git", ["init", "-q"], { cwd: temporaryRoot }).status, 0);
 
-  const fetch = async () => ({
-    ok: true,
-    status: 201,
-    url: `${MANAGEMENT_API_URL}genesis?format=json`,
-    headers: new Headers({ "content-type": "application/json" }),
-    text: async () => JSON.stringify({
-      tenant_id: "swift-fox-running",
-      coh_management_key: managementKey,
-      coh_application_key: applicationKey,
-      expires_at: "2026-08-13T00:00:00.000Z",
-      tenant_lifecycle: "ephemeral",
-      runtime_profile: "stable-v1",
-    }),
-  });
+  const fetch = async () => new Response("#!/bin/bash\n");
 
   try {
-    await callTool("create_tenant", { project_root: temporaryRoot, confirmed: true }, { fetch });
+    await callTool("create_tenant", { project_root: temporaryRoot, confirmed: true }, {
+      fetch, env: { HOME: temporaryRoot }, runQuickstart: async () => {
+        writeFileSync(join(temporaryRoot, ".cohesivity"), `tenant_id=swift-fox-running\ncoh_management_key=${managementKey}\ncoh_application_key=${applicationKey}\n`, { mode: 0o600 });
+      },
+    });
     const ignored = spawnSync("git", ["check-ignore", "-q", ".cohesivity"], {
       cwd: temporaryRoot,
       encoding: "utf8",
@@ -790,8 +773,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.7\.1/);
-  assert.match(readme, /artifacts\/v3\.0\.6\//);
+  assert.match(readme, /@cohesivity\/init@0\.8\.0/);
+  assert.match(readme, /artifacts\/v4\.0\.0\//);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

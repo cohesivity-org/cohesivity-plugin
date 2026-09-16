@@ -8,15 +8,21 @@ wrappers live under `packages/`, and the root Claude marketplace manifest
 points Claude Code at its self-contained wrapper instead of treating the
 portable root as a Claude plugin.
 
-## Local bootstrap and remote OAuth are independent
+## Local quickstart and optional account sign-in
 
 The dependency-free **local `cohesivity-local` stdio MCP server** needs Node
-18 or newer but no Cohesivity account. Its primary `create_tenant` tool accepts
-an absolute project root, creates the tenant through the fixed Cohesivity API,
-and writes `.cohesivity` without executing a shell or forwarding the host
-environment. In Claude Code, the root must exactly match the
+18 or newer, Bash on a POSIX platform, and the dependencies required by the
+quickstart, but no Cohesivity account. Its primary `create_tenant` tool accepts
+an absolute project root and **runs the full `https://cohesivity.ai/quickstart.sh`
+flow** there. This creates or reuses `.cohesivity`, installs or updates detected
+client integrations and skills, and writes the quickstart's project guidance.
+Approval must cover these effects, including user-level client configuration,
+not just tenant creation. In Claude Code, the root must exactly match the
 `CLAUDE_PROJECT_DIR` supplied by the client. It returns only non-secret tenant
-metadata.
+metadata; all subprocess output is discarded, including on failure. Existing
+incomplete, unsafe, or publicly readable credentials are rejected rather than
+overwritten. A valid existing tenant still runs the quickstart's integration
+and guidance steps.
 The same server exposes fixed claim, status, and provision operations against
 the Cohesivity Management API. Its provision tool accepts either one resource
 or a resource list, so single and bulk provisioning share one tool. Those
@@ -33,22 +39,64 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.7.1` package instead of mutable
+pins the exact `@cohesivity/init@0.8.0` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
 
-This 3.0.6 candidate carries the four-tool skill guidance for the coordinated
-initializer 0.7.1 release. Both remain unreleased pending review; do not use
-the fallback pin until that initializer version is published. The MCP still
-exposes only `create_tenant`, `claim_tenant`, `tenant_status`, and
-`provision_resource`; its tool behavior is unchanged. The skill requires
+To create account-owned local tenants with no claim step, sign in explicitly
+using the installed plugin's local entrypoint. From this source checkout:
+
+```bash
+node mcp/project-bootstrap.mjs login
+node mcp/project-bootstrap.mjs logout
+```
+
+`login` prints a Cohesivity browser authorization URL to CLI stderr and waits
+up to three minutes for a loopback callback. It uses authorization code + PKCE,
+dynamic public-client registration, and account-required consent; guest grants
+are rejected. It requests only tenant-creation permission. No browser action
+is triggered by a tool call, and the default invocation without a subcommand
+remains stdio MCP. Restart an existing MCP session only if its HOME/XDG
+configuration differs from the CLI's.
+
+Account tokens are stored outside the project in
+`$XDG_CONFIG_HOME/cohesivity/mcp-auth.json`, or
+`$HOME/.config/cohesivity/mcp-auth.json` when XDG_CONFIG_HOME is unset, with
+private file and directory permissions. The local MCP refreshes expiring tokens
+before running account bootstrap. Existing invalid, revoked, or guest
+credentials fail closed; it never silently creates a guest tenant instead.
+`logout` revokes the saved token family and deletes the local token file,
+returning future new projects to guest bootstrap. If server revocation fails,
+it still removes local auth and reports that limitation without exposing tokens.
+It doesn't delete tenants, change existing project credentials, or revoke
+independent grants saved in another client. Remote MCP sign-in and local sign-in
+are independent.
+
+Account bootstrap sends a private temporary auth-header file to quickstart,
+never a token argument or environment variable. The file is deleted after the
+script exits. A non-secret retry key is saved in the same protected user-state
+directory per project root and saved OAuth client, so retries after a failed
+quickstart use the same tenant-creation request. Do not delete this state to
+retry an interrupted bootstrap.
+
+Account storage operations serialize across local MCP processes, and overlapping
+quickstarts for the same project are rejected. Locks are removed on ordinary
+completion and failures. A forcibly terminated MCP process can leave
+`mcp-auth.lock` in the user config directory or `.cohesivity-bootstrap.lock` in
+the project. Only remove a leftover empty lock directory after confirming no
+login, logout, or bootstrap process is still using it; retry keys and credential
+files should stay intact.
+
+The source MCP still exposes only `create_tenant`, `claim_tenant`, `tenant_status`,
+and `provision_resource`; login/logout are CLI operations, not new tools.
+The skill requires
 agents to stop when another control-plane mutation has no supported tool,
 rather than inventing a tool or bypassing MCP through HTTP, a CLI, or a script.
 
 The **remote management MCP connection** at
-`https://cohesivity.ai/mcp/manage` is different: it requires Cohesivity sign-in
-but it can be authorized before the account owns a tenant. The account-scoped
+`https://cohesivity.ai/mcp/manage` is different: its OAuth session belongs to
+the MCP client and can use guest access or account sign-in. The account-scoped
 grant can create the first tenant and manage current or future owned tenants;
 an optional tenant chosen during consent is only a default, and ownership is
 checked again on every tenant call. The endpoint returns an OAuth challenge to
@@ -100,7 +148,7 @@ Agent Plugins 1.0 deliberately defines no portable OAuth field. Its
 `mcp.json` declares the protected URL with Streamable HTTP transport and the
 local server with stdio transport, so OAuth discovery, browser interaction,
 and token storage belong to the client. Clients may leave the remote server
-disconnected and continue using the skill and local ephemeral bootstrap flow.
+disconnected and continue using the skill and local bootstrap flow.
 
 OpenClaw requires an owner/operator override to opt the bundled connection into
 its OAuth credential store. Operator MCP config wins over the bundle entry with
@@ -147,11 +195,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@1c65e6d1bf4690d7ee3b046bcd8251387b4f701b`:
+`cohesivity-org/cohesivity-skill@cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981`:
 
-- skill metadata version: `d309e051978d`
-- size: 16,060 bytes
-- SHA-256: `10b03850ecd87564b457d2df0fcb1a5e6cf3ae205fb695c27114be6c95018e59`
+- skill metadata version: `7f2fbc207f1d`
+- size: 18,933 bytes
+- SHA-256: `755f0fed995635cc722ea7ca0987b91e16749b5dcc3fe2a80ae0e540389005db`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -169,7 +217,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.6/`. Each client archive
+Versioned installer inputs live under `artifacts/v4.0.0/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical

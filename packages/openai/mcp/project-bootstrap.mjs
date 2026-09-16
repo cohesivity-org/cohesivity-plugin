@@ -7,18 +7,27 @@ import {
   constants as fsConstants,
   fstatSync,
   lstatSync,
+  mkdirSync,
+  mkdtempSync,
   openSync,
   readFileSync,
   realpathSync,
+  renameSync,
+  rmdirSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
+import { spawn } from "node:child_process";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createServer } from "node:http";
 import { isAbsolute, normalize, parse, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 export const MANAGEMENT_API_URL = "https://cohesivity.ai/api/";
 export const REMOTE_MCP_URL = "https://cohesivity.ai/mcp/manage";
+export const QUICKSTART_URL = "https://cohesivity.ai/quickstart.sh";
 
 export const RESOURCE_NAMES = Object.freeze([
   "openweather-api",
@@ -40,14 +49,14 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "3.0.6";
+export const SERVER_VERSION = "4.0.0";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_GITIGNORE_BYTES = 1024 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
-const SECRET_VALUE = /(?:coh_(?:man|app)_[a-z0-9]+|Bearer\s+[^\s"']+)/gi;
-const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|Bearer\s+[^\s"']+)/i;
+const SECRET_VALUE = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/gi;
+const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/i;
 const SECRET_KEY = /(?:authorization|cookie|credential|password|secret|token|(?:^|_)key(?:$|_))/i;
 const SAFE_RESOURCE_IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const SAFE_RESOURCE_STATUS = /^[A-Za-z][A-Za-z0-9._ -]{0,79}$/u;
@@ -278,7 +287,7 @@ export const TOOLS = Object.freeze([
     name: "create_tenant",
     title: "Create or reuse a Cohesivity project tenant",
     description:
-      "Creates an ephemeral tenant through the fixed Cohesivity API, writes its credentials only inside an explicitly supplied project root, and returns only non-secret metadata.",
+      "Runs the full Cohesivity quickstart in the supplied project: creates or reuses credentials, installs detected client integrations and guidance, and returns only non-secret metadata. Optional local CLI login creates an account-owned tenant without claiming; otherwise creates an ephemeral tenant. Requires explicit approval for all quickstart effects.",
     inputSchema: {
       type: "object",
       properties: { project_root: projectRootProperty, confirmed: confirmedProperty },
@@ -439,7 +448,7 @@ function gitignorePath(projectRoot) {
   return path;
 }
 
-function readRegularFile(path, label, missingMessage, oversizedMessage, maxBytes) {
+function readRegularFile(path, label, missingMessage, oversizedMessage, maxBytes, privateFile = false) {
   let descriptor;
   try {
     const initial = lstatSync(path);
@@ -463,6 +472,9 @@ function readRegularFile(path, label, missingMessage, oversizedMessage, maxBytes
       fail(`${label} must be a regular file.`);
     }
     if (opened.size > maxBytes) fail(oversizedMessage);
+    if (privateFile && ((opened.mode & 0o077) !== 0 || opened.nlink !== 1 || (process.getuid && opened.uid !== process.getuid()))) {
+      fail(`${label} must be privately owned with no group or other permissions.`);
+    }
     return readFileSync(descriptor, "utf8");
   } catch (error) {
     if (error instanceof SafeError) throw error;
@@ -583,78 +595,313 @@ function safeTenantMetadata(projectRoot) {
   return metadata;
 }
 
-function validateGenesisDocument(value) {
-  if (!isRecord(value)) fail("The Cohesivity tenant response is invalid.");
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/u.test(value.tenant_id ?? "")) {
-    fail("The Cohesivity tenant response has an invalid tenant_id.");
+export function secureEnvironment(environment = process.env) {
+  const result = {};
+  for (const name of ["HOME", "PATH", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "CODEX_HOME", "HERMES_HOME"]) {
+    const value = environment[name];
+    if (typeof value === "string" && value.length && !/[\0\r\n]/u.test(value)) result[name] = value;
   }
-  if (!/^coh_man_[a-z0-9]{20}$/u.test(value.coh_management_key ?? "")) {
-    fail("The Cohesivity tenant response has an invalid management credential.");
+  result.PATH ??= "/usr/local/bin:/usr/bin:/bin";
+  return result;
+}
+
+function privateStatus(path, directory = false) {
+  const status = lstatSync(path);
+  if (status.isSymbolicLink() || (directory ? !status.isDirectory() : !status.isFile()) ||
+      (status.mode & (directory ? 0o022 : 0o077)) !== 0 || (!directory && status.nlink !== 1) ||
+      (process.getuid && status.uid !== process.getuid())) {
+    fail("Local Cohesivity state must be privately owned, non-symlink files and directories.");
   }
-  if (!/^coh_app_[a-z0-9]{20}$/u.test(value.coh_application_key ?? "")) {
-    fail("The Cohesivity tenant response has an invalid application credential.");
+  return status;
+}
+
+function authDirectory(environment) {
+  if (process.platform === "win32") fail("Local account authentication requires a POSIX filesystem.");
+  const home = environment.HOME;
+  const base = environment.XDG_CONFIG_HOME || (home && resolve(home, ".config"));
+  if (!base || !isAbsolute(base) || (home && !isAbsolute(home))) fail("Set an absolute HOME or XDG_CONFIG_HOME for local Cohesivity authentication.");
+  const directory = resolve(base, "cohesivity");
+  let cursor = parse(directory).root;
+  for (const part of directory.slice(cursor.length).split(sep)) {
+    cursor = resolve(cursor, part);
+    try {
+      const status = lstatSync(cursor);
+      if (status.isSymbolicLink() || !status.isDirectory()) fail("Local Cohesivity state paths must not contain symlinks.");
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      try { mkdirSync(cursor, { mode: 0o700 }); } catch (mkdirError) { if (mkdirError?.code !== "EEXIST") throw mkdirError; }
+      const status = lstatSync(cursor);
+      if (status.isSymbolicLink() || !status.isDirectory()) fail("Local Cohesivity state paths must not contain symlinks.");
+    }
   }
-  const expiresAt = Date.parse(value.expires_at ?? "");
-  if (!Number.isFinite(expiresAt)) fail("The Cohesivity tenant response has an invalid expiry.");
-  if (value.tenant_lifecycle !== "ephemeral") {
-    fail("The Cohesivity tenant response has an invalid lifecycle.");
+  privateStatus(directory, true);
+  return directory;
+}
+
+function privateRead(path) {
+  privateStatus(path);
+  return readRegularFile(path, "Local Cohesivity state", "Could not read local Cohesivity state.", "Local Cohesivity state is unexpectedly large.", 64 * 1024, true);
+}
+
+async function withStateLock(directory, name, action, waitMs = 35_000) {
+  const path = resolve(directory, name);
+  const deadline = Date.now() + waitMs;
+  while (true) {
+    try { mkdirSync(path, { mode: 0o700 }); break; } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      try { privateStatus(path, true); } catch (statusError) { if (statusError?.code === "ENOENT") continue; throw statusError; }
+      if (Date.now() >= deadline) fail(waitMs === 0 ? "A Cohesivity quickstart is already running for this project." : "Local account state is locked by another process. Retry after it finishes.");
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 50));
+    }
   }
-  if (!/^[A-Za-z0-9._-]{1,100}$/u.test(value.runtime_profile ?? "")) {
-    fail("The Cohesivity tenant response has an invalid runtime profile.");
+  const lock = privateStatus(path, true);
+  try { return await action(); } finally {
+    const current = privateStatus(path, true);
+    if (current.dev === lock.dev && current.ino === lock.ino) rmdirSync(path);
   }
+}
+
+function writePrivateJson(path, value) {
+  try { privateStatus(path); } catch (error) { if (error?.code !== "ENOENT") throw error; }
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(value)}\n`, { flag: "wx", mode: 0o600 });
+    renameSync(temporary, path);
+  } finally {
+    rmSync(temporary, { force: true });
+  }
+}
+
+function validateAccount(value) {
+  if (!isRecord(value) || value.principal_type !== "account" || value.token_type !== "Bearer" ||
+      !/^mcp_at_[A-Za-z0-9_-]{43}$/u.test(value.access_token ?? "") ||
+      !/^mcp_rt_[A-Za-z0-9_-]{43}$/u.test(value.refresh_token ?? "") ||
+      !/^[A-Za-z0-9_-]{1,200}$/u.test(value.client_id ?? "") ||
+      !Number.isFinite(value.expires_at) || value.expires_at <= 0) {
+    fail("Local account credentials are invalid. Run login again or logout explicitly; guest fallback is disabled.");
+  }
+  return value;
+}
+
+async function boundedFetch(url, options, fetchImpl, limit = 1024 * 1024) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  let reader;
+  try {
+    const response = await fetchImpl(url, { ...options, redirect: "error", signal: controller.signal });
+    if (!response.ok || (response.url && response.url !== String(url)) || response.redirected ||
+        Number(response.headers.get("content-length")) > limit) fail("The fixed Cohesivity endpoint returned an invalid or oversized response.");
+    reader = response.body?.getReader();
+    if (!reader) return "";
+    const chunks = [];
+    let size = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) fail("The fixed Cohesivity endpoint returned an oversized response.");
+      chunks.push(Buffer.from(value));
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  } catch (error) {
+    if (error instanceof SafeError) throw error;
+    fail("The fixed Cohesivity endpoint request failed.");
+  } finally {
+    controller.abort();
+    if (reader) await reader.cancel().catch(() => {});
+    clearTimeout(timer);
+  }
+}
+
+async function oauthRequest(path, body, fetchImpl, json = false) {
+  const text = await boundedFetch(`https://cohesivity.ai/oauth/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": json ? "application/json" : "application/x-www-form-urlencoded", Accept: "application/json", "User-Agent": USER_AGENT },
+    body: json ? JSON.stringify(body) : new URLSearchParams(body),
+  }, fetchImpl, 64 * 1024);
+  try { return JSON.parse(text); } catch { fail("Cohesivity account authentication returned an invalid response."); }
+}
+
+function accountFromResponse(response, clientId) {
+  if (!isRecord(response) || !Number.isFinite(response.expires_in) || response.expires_in <= 0 || response.expires_in > 86400) {
+    fail("Cohesivity account authentication returned an invalid expiry.");
+  }
+  return validateAccount({ access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type,
+    principal_type: response.principal_type, client_id: clientId, expires_at: Date.now() + response.expires_in * 1000 });
+}
+
+async function loadAccount(environment, fetchImpl) {
+  const directory = authDirectory(environment);
+  return withStateLock(directory, "mcp-auth.lock", async () => {
+    const path = resolve(directory, "mcp-auth.json");
+    let contents;
+    try { contents = privateRead(path); } catch (error) { if (error?.code === "ENOENT") return undefined; throw error; }
+    let account;
+    try { account = JSON.parse(contents); } catch { fail("Local account credentials are invalid. Run login again or logout explicitly."); }
+    account = validateAccount(account);
+    if (account.expires_at > Date.now() + 60_000) return account;
+    const response = await oauthRequest("token", { grant_type: "refresh_token", client_id: account.client_id,
+      refresh_token: account.refresh_token, resource: REMOTE_MCP_URL }, fetchImpl);
+    account = accountFromResponse(response, account.client_id);
+    writePrivateJson(path, account);
+    return account;
+  });
+}
+
+export function runQuickstartProcess(script, args, options, dependencies = {}) {
+  if (process.platform === "win32") return Promise.reject(new SafeError("Quickstart requires Bash on a POSIX platform."));
+  return new Promise((resolvePromise, reject) => {
+    let child;
+    let timedOut = false;
+    let timer;
+    try {
+      child = (dependencies.spawn ?? spawn)("/bin/bash", ["--noprofile", "--norc", "-s", "--", ...args], {
+        ...options, shell: false, detached: true, stdio: ["pipe", "ignore", "ignore"],
+      });
+      timer = setTimeout(() => {
+        timedOut = true;
+        try { (dependencies.kill ?? process.kill)(-child.pid, "SIGKILL"); } catch { child.kill?.("SIGKILL"); }
+      }, dependencies.timeoutMs ?? 180_000);
+      child.on("error", () => { clearTimeout(timer); reject(new SafeError("Could not start the Cohesivity quickstart.")); });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (timedOut || code !== 0) reject(new SafeError("The Cohesivity quickstart failed or timed out; its output was withheld to protect credentials."));
+        else resolvePromise();
+      });
+      child.stdin.on("error", () => {});
+      child.stdin.end(script);
+    } catch {
+      clearTimeout(timer);
+      reject(new SafeError("Could not start the Cohesivity quickstart."));
+    }
+  });
+}
+
+function validateProjectCredentials(projectRoot) {
+  const path = credentialPath(projectRoot);
+  const contents = readRegularFile(path, ".cohesivity", "Could not read .cohesivity.", ".cohesivity is unexpectedly large.", MAX_CREDENTIAL_FILE_BYTES, true);
+  readCredentialFields(projectRoot, true);
+  if (!/^coh_application_key=coh_app_[a-z0-9]{20}$/mu.test(contents)) fail(".cohesivity does not contain a valid application credential.");
+}
+
+async function runProjectQuickstart(projectRoot, dependencies) {
+  const environment = dependencies.env ?? process.env;
+  const fetchImpl = dependencies.fetch ?? globalThis.fetch;
+  const directory = authDirectory(environment);
+  return withStateLock(projectRoot, ".cohesivity-bootstrap.lock", async () => {
+    const account = await loadAccount(environment, fetchImpl);
+    const script = await boundedFetch(QUICKSTART_URL, { method: "GET", headers: { Accept: "text/plain", "User-Agent": USER_AGENT } }, fetchImpl);
+    if (!script.trim() || script.includes("\0")) fail("The Cohesivity quickstart download is invalid.");
+    let temporary;
+    try {
+      const args = [];
+      if (account) {
+        if (directory === projectRoot || directory.startsWith(`${projectRoot}${sep}`)) fail("Account state must be outside project_root.");
+        const keyPath = resolve(directory, `bootstrap-${createHash("sha256").update(`${account.client_id}\0${projectRoot}`).digest("hex")}.json`);
+        let key;
+        try { key = JSON.parse(privateRead(keyPath)).idempotency_key; } catch (error) {
+          if (error?.code !== "ENOENT") throw error;
+          try { writeFileSync(keyPath, JSON.stringify({ idempotency_key: randomUUID() }), { flag: "wx", mode: 0o600 }); } catch (writeError) { if (writeError?.code !== "EEXIST") throw writeError; }
+          key = JSON.parse(privateRead(keyPath)).idempotency_key;
+        }
+        if (!/^[A-Za-z0-9_-]{8,128}$/u.test(key ?? "")) fail("The local bootstrap retry key is invalid.");
+        temporary = mkdtempSync(resolve(directory, "bootstrap-auth-"));
+        const headerPath = resolve(temporary, "authorization.header");
+        writeFileSync(headerPath, `${["Authorization:", "Bearer", account.access_token].join(" ")}\n`, { flag: "wx", mode: 0o600 });
+        args.push("--account-auth-file", headerPath, "--idempotency-key", key);
+      }
+      await (dependencies.runQuickstart ?? runQuickstartProcess)(script, args, { cwd: projectRoot, env: secureEnvironment(environment) });
+      validateProjectCredentials(projectRoot);
+      ensureCredentialIgnored(projectRoot);
+      return safeTenantMetadata(projectRoot);
+    } catch (error) {
+      if (error instanceof SafeError) throw error;
+      fail("The Cohesivity quickstart failed safely; its output was withheld to protect credentials.");
+    } finally {
+      if (temporary) rmSync(temporary, { recursive: true, force: true });
+    }
+  }, 0);
+}
+
+export function validateOAuthCallback(target, state) {
+  const url = new URL(target, "http://127.0.0.1");
+  if (url.origin !== "http://127.0.0.1" || url.pathname !== "/callback" || url.searchParams.getAll("state").length !== 1 ||
+      url.searchParams.get("state") !== state || url.searchParams.has("error") || url.searchParams.getAll("code").length !== 1 ||
+      !/^[A-Za-z0-9_-]{1,2048}$/u.test(url.searchParams.get("code") ?? "")) fail("The account login callback was rejected.");
+  return url.searchParams.get("code");
+}
+
+async function loopbackCallback(state) {
+  let complete;
+  let reject;
+  const result = new Promise((yes, no) => { complete = yes; reject = no; });
+  result.catch(() => {});
+  const server = createServer((request, response) => {
+    try {
+      if (request.method !== "GET" || request.headers.host !== `127.0.0.1:${server.address().port}`) fail("Invalid callback.");
+      const code = validateOAuthCallback(request.url, state);
+      response.writeHead(200, { "Content-Type": "text/plain", "Cache-Control": "no-store" });
+      response.end("Cohesivity authorization received. You can close this tab.");
+      complete(code);
+    } catch {
+      response.writeHead(400, { "Content-Type": "text/plain", "Cache-Control": "no-store" });
+      response.end("Invalid Cohesivity authorization callback.");
+    }
+  });
+  await new Promise((yes, no) => { server.once("error", no); server.listen(0, "127.0.0.1", yes); });
+  const timer = setTimeout(() => reject(new SafeError("Account login timed out.")), 180_000);
   return {
-    tenant_id: value.tenant_id,
-    coh_management_key: value.coh_management_key,
-    coh_application_key: value.coh_application_key,
-    expires_at: new Date(expiresAt).toISOString(),
-    tenant_lifecycle: value.tenant_lifecycle,
-    runtime_profile: value.runtime_profile,
+    redirectUri: `http://127.0.0.1:${server.address().port}/callback`,
+    wait: () => result,
+    close: () => { clearTimeout(timer); server.close(); server.closeAllConnections?.(); },
   };
 }
 
-function credentialFileContents(value) {
-  return [
-    "# .cohesivity - Cohesivity tenant credentials. Do not commit this file.",
-    `tenant_id=${value.tenant_id}`,
-    `coh_management_key=${value.coh_management_key}`,
-    `coh_application_key=${value.coh_application_key}`,
-    `expires_at=${value.expires_at}`,
-    `tenant_lifecycle=${value.tenant_lifecycle}`,
-    `runtime_profile=${value.runtime_profile}`,
-    "",
-  ].join("\n");
+export async function login(dependencies = {}) {
+  const environment = dependencies.env ?? process.env;
+  const fetchImpl = dependencies.fetch ?? globalThis.fetch;
+  const stderr = dependencies.stderr ?? process.stderr;
+  const directory = authDirectory(environment);
+  const state = randomBytes(32).toString("base64url");
+  const verifier = randomBytes(32).toString("base64url");
+  const callback = await (dependencies.callback ?? loopbackCallback)(state);
+  try {
+    const client = await oauthRequest("register", { client_name: "Cohesivity local project bootstrap", redirect_uris: [callback.redirectUri],
+      token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] }, fetchImpl, true);
+    if (!/^[A-Za-z0-9_-]{1,200}$/u.test(client?.client_id ?? "")) fail("Cohesivity registration returned an invalid client.");
+    const authorize = new URL("https://cohesivity.ai/oauth/authorize");
+    authorize.search = new URLSearchParams({ response_type: "code", client_id: client.client_id, redirect_uri: callback.redirectUri,
+      scope: "mcp:tenants:create", resource: REMOTE_MCP_URL, state, code_challenge: createHash("sha256").update(verifier).digest("base64url"),
+      code_challenge_method: "S256", account_required: "true" }).toString();
+    stderr.write(`Open this URL in your browser to sign in to your Cohesivity account:\n${authorize.href}\n`);
+    if (dependencies.openBrowser) await dependencies.openBrowser(authorize.href);
+    const code = await callback.wait();
+    const token = await oauthRequest("token", { grant_type: "authorization_code", client_id: client.client_id, redirect_uri: callback.redirectUri,
+      code, code_verifier: verifier, resource: REMOTE_MCP_URL }, fetchImpl);
+    const account = accountFromResponse(token, client.client_id);
+    await withStateLock(directory, "mcp-auth.lock", () => writePrivateJson(resolve(directory, "mcp-auth.json"), account));
+    stderr.write("Cohesivity account sign-in saved. New project tenants will belong to this account.\n");
+  } finally { callback.close(); }
 }
 
-async function fetchGenesis(fetchImpl) {
-  const url = new URL("genesis?format=json", MANAGEMENT_API_URL);
-  let response;
-  try {
-    response = await fetchImpl(url, {
-      method: "POST",
-      redirect: "error",
-      headers: { Accept: "application/json", "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch {
-    fail("Could not create the Cohesivity project tenant.");
-  }
-  if (!response.ok || response.status !== 201 || (response.url && response.url !== url.href)) {
-    fail("Could not create the Cohesivity project tenant.");
-  }
-  const declaredLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity tenant response is unexpectedly large.");
-  }
-  const text = await response.text();
-  if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity tenant response is unexpectedly large.");
-  }
-  try {
-    return validateGenesisDocument(JSON.parse(text));
-  } catch (error) {
-    if (error instanceof SafeError) throw error;
-    fail("The Cohesivity tenant response is invalid.");
-  }
+export async function logout(dependencies = {}) {
+  const directory = authDirectory(dependencies.env ?? process.env);
+  const stderr = dependencies.stderr ?? process.stderr;
+  await withStateLock(directory, "mcp-auth.lock", async () => {
+    const path = resolve(directory, "mcp-auth.json");
+    let contents;
+    try { contents = privateRead(path); } catch (error) { if (error?.code === "ENOENT") return; throw error; }
+    let revoked = false;
+    try {
+      const account = validateAccount(JSON.parse(contents));
+      await boundedFetch("https://cohesivity.ai/oauth/revoke", {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": USER_AGENT },
+        body: new URLSearchParams({ token: account.refresh_token, token_type_hint: "refresh_token", client_id: account.client_id }),
+      }, dependencies.fetch ?? globalThis.fetch, 64 * 1024);
+      revoked = true;
+    } catch {} finally { rmSync(path); }
+    stderr.write(revoked ? "Cohesivity account tokens revoked and local sign-in removed.\n" : "Local sign-in removed, but Cohesivity could not confirm server revocation; the server grant may remain active.\n");
+  });
 }
 
 function validateResource(value) {
@@ -866,25 +1113,13 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
     const path = credentialPath(projectRoot);
     try {
       lstatSync(path);
-      const metadata = safeTenantMetadata(projectRoot);
-      ensureCredentialIgnored(projectRoot);
-      return metadata;
+      validateProjectCredentials(projectRoot);
     } catch (error) {
       if (error instanceof SafeError) throw error;
       if (error?.code !== "ENOENT") fail("Could not validate the project credential path.");
     }
     ensureCredentialIgnored(projectRoot);
-    const tenant = await fetchGenesis(fetchImpl);
-    try {
-      writeFileSync(path, credentialFileContents(tenant), {
-        encoding: "utf8",
-        flag: "wx",
-        mode: 0o600,
-      });
-    } catch {
-      fail("Could not write .cohesivity safely in project_root.");
-    }
-    return safeTenantMetadata(projectRoot);
+    return runProjectQuickstart(projectRoot, dependencies);
   }
 
   if (name === "claim_tenant") {
@@ -974,13 +1209,10 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
     if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
     const projectRoot = validateProjectRoot(args.project_root);
     const resource = validateResource(args.resource);
-    const configurable = ["inbox", "postgres", "realtime", "social-login", "vector-database"].includes(
-      resource,
-    );
     const configuration = validateConfiguration(
       resource,
       args.configuration,
-      configurable && !["social-login", "vector-database"].includes(resource),
+      !["social-login", "vector-database"].includes(resource),
     );
     const result = await managementRequest(
       projectRoot,
@@ -1073,7 +1305,13 @@ export async function runServer(input = process.stdin, output = process.stdout) 
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  runServer().catch(() => {
+  const command = process.argv[2];
+  const run = command === undefined ? runServer
+    : command === "login" && process.argv.length === 3 ? login
+    : command === "logout" && process.argv.length === 3 ? logout
+    : () => fail("Usage: project-bootstrap.mjs [login|logout]");
+  Promise.resolve().then(run).catch((error) => {
+    if (command !== undefined) process.stderr.write(`${safeErrorMessage(error)}\n`);
     process.exitCode = 1;
   });
 }

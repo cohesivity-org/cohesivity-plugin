@@ -148,3 +148,49 @@ files match `origin/main` byte-for-byte, the MCP source differs only in
 `SERVER_VERSION`, and `git diff --check` passes. This is a local plugin
 artifact candidate, with no runtime deployment or publication; initializer
 0.7.1 and core quickstart pin updates remain separate, unreleased work.
+
+## 2026-09-16 — Add quickstart bootstrap and optional account login
+
+### Why
+
+Local creation must run the complete quickstart flow, while users can choose
+guest projects or account-owned projects without a separate claim step.
+Account credentials must remain outside both project files and MCP results.
+
+### What changed
+
+`mcp/project-bootstrap.mjs` now downloads the fixed quickstart URL and runs
+Bash in the validated project root with bounded execution, a restricted
+environment, and discarded subprocess output. It preserves private credential
+validation and rejects concurrent quickstarts for one project. CLI login uses
+account-required PKCE and a loopback callback; private account state supports
+serialized refresh, revocation/logout, and persistent bootstrap retry keys.
+Quickstart receives a temporary private authorization-header file rather than
+a token argument. Invalid account state never falls back to guest creation.
+
+Single-resource provisioning now accepts absent configuration for the eleven
+offerings that have no configuration fields, while still rejecting supplied
+fields. Full quickstart side effects and independent local/hosted account
+connections are documented in README and SECURITY.
+
+Plugin/server version 4.0.0 and all six package surfaces carry generated skill
+`7f2fbc207f1d`, pinned to mirror commit
+`cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981`. New v4 archives are deterministic;
+older versioned artifacts are untouched. The provisional manifest is excluded
+from this source commit and will be stamped with its immutable archive commit.
+
+### CICD classification
+
+Client plugin release under the sibling CICD playbook, coordinated with the
+Worker access-mode change and initializer 0.8.0. No deployment, release tag,
+or npm publication is performed by this commit.
+
+### Verification
+
+New quickstart, login, filesystem, callback, token-refresh concurrency, and
+single-provision regressions pass. Package consistency checks pass. On Node
+18.20.8 and 24.18.0, 52 of 53 tests pass before source stamping; only the
+unchanged immutable-archive comparison awaits this commit. The final stamped
+manifest will be tested on both versions before delivery. Older artifact
+bytes match origin/main and whitespace checks pass. Network and client
+installation effects are mocked; no real login or tenant creation was run.
