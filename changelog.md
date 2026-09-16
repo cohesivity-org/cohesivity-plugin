@@ -194,3 +194,15 @@ unchanged immutable-archive comparison awaits this commit. The final stamped
 manifest will be tested on both versions before delivery. Older artifact
 bytes match origin/main and whitespace checks pass. Network and client
 installation effects are mocked; no real login or tenant creation was run.
+
+## 2026-09-16 — Stamp the immutable v4 install manifest
+
+The v4.0.0 install manifest now identifies source/archive commit
+`daaee4d68156b27c6fe4eeb38270562071b452ad` and hashes the six committed client
+archives. The manifest SHA-256 is
+`35fcef2844fe1a704776cf6dae94d863848bd7cc609a66f07cbe3b4349b71b8b`.
+All 53 tests pass on both Node 18.20.8 and 24.18.0, including archive equality
+against that immutable commit, secret scanning, package isolation, local
+account flows, and generated-package consistency. `npm run check` and
+`git diff --check` pass. This is the final client-plugin candidate metadata;
+no tag, package publication, or deployment has run.
