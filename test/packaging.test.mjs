@@ -65,7 +65,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "3.0.5");
+  assert.equal(VERSION, "3.0.6");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -164,11 +164,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "78d6d26c09ea955e2ab2392a62d980817bcabb39");
-  assert.equal(SKILL_VERSION, "2923f0623a63");
+  assert.equal(SKILL_SOURCE_COMMIT, "1c65e6d1bf4690d7ee3b046bcd8251387b4f701b");
+  assert.equal(SKILL_VERSION, "d309e051978d");
+  assert.equal(canonical.length, 16060);
   assert.equal(
     SKILL_SHA256,
-    "f995c85b94ac5198eb0bdb45c7847d76092f7905cb6d7802e5e0caa6c2d8e502",
+    "10b03850ecd87564b457d2df0fcb1a5e6cf3ae205fb695c27114be6c95018e59",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -186,6 +187,31 @@ test("canonical skill is pinned and every portable package copy is byte-identica
     "packages/codex/plugins/cohesivity/skills/cohesivity/SKILL.md",
   ]) {
     assert.deepEqual(readFileSync(path), canonical, `${path} drifted from the canonical skill`);
+  }
+});
+
+test("every skill documents exactly the four supported MCP tools and fails closed", async () => {
+  const response = await handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+  const names = ["create_tenant", "claim_tenant", "tenant_status", "provision_resource"];
+  assert.deepEqual(response.result.tools.map((tool) => tool.name), names);
+  for (const root of [
+    ".",
+    "packages/claude",
+    "packages/gemini",
+    "packages/antigravity",
+    "packages/openai",
+    "packages/codex/plugins/cohesivity",
+  ]) {
+    const skill = readFileSync(`${root}/skills/cohesivity/SKILL.md`, "utf8");
+    const operations = skill.match(/^## Supported MCP operations\n([\s\S]*?)(?=^## )/m)?.[1];
+    assert.ok(operations, `${root} is missing the supported operations boundary`);
+    assert.deepEqual([...operations.matchAll(/^- `([^`]+)`: /gm)].map((match) => match[1]), names);
+    assert.match(operations, /`tenant_status` is read-only/);
+    assert.match(operations, /Every mutation still requires `confirmed: true`/);
+    assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not supported/);
+    assert.match(operations, /Do not invent a tool or bypass MCP with direct HTTP, a CLI, or a script, even with user approval/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.7\.1/);
+    assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
 
@@ -764,7 +790,11 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.6\.6/);
+  assert.match(readme, /@cohesivity\/init@0\.7\.1/);
+  assert.match(readme, /artifacts\/v3\.0\.6\//);
+  assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
+  assert.ok(readme.includes(SKILL_VERSION));
+  assert.ok(readme.includes(SKILL_SHA256));
   assert.doesNotMatch(readme, /curl\s+-fsSL[\s\S]*?\|\s*bash/);
   assert.match(readme, /claude plugin marketplace add \.\//);
   assert.doesNotMatch(readme, /claude plugin marketplace add \.\n/);

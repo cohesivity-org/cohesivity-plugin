@@ -33,10 +33,18 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-uses the exact published `@cohesivity/init@0.6.6` package instead of mutable
+pins the exact `@cohesivity/init@0.7.1` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
+
+This 3.0.6 candidate carries the four-tool skill guidance for the coordinated
+initializer 0.7.1 release. Both remain unreleased pending review; do not use
+the fallback pin until that initializer version is published. The MCP still
+exposes only `create_tenant`, `claim_tenant`, `tenant_status`, and
+`provision_resource`; its tool behavior is unchanged. The skill requires
+agents to stop when another control-plane mutation has no supported tool,
+rather than inventing a tool or bypassing MCP through HTTP, a CLI, or a script.
 
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: it requires Cohesivity sign-in
@@ -139,10 +147,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@78d6d26c09ea955e2ab2392a62d980817bcabb39`:
+`cohesivity-org/cohesivity-skill@1c65e6d1bf4690d7ee3b046bcd8251387b4f701b`:
 
-- skill metadata version: `2923f0623a63`
-- SHA-256: `f995c85b94ac5198eb0bdb45c7847d76092f7905cb6d7802e5e0caa6c2d8e502`
+- skill metadata version: `d309e051978d`
+- size: 16,060 bytes
+- SHA-256: `10b03850ecd87564b457d2df0fcb1a5e6cf3ae205fb695c27114be6c95018e59`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -160,7 +169,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v3.0.5/`. Each client archive
+Versioned installer inputs live under `artifacts/v3.0.6/`. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
