@@ -93,3 +93,58 @@ The v3.0.5 manifest points to archive source commit
 All 30 tests, including immutable archive comparison, and `npm run check`
 pass on both Node 18.20.8 and Node 24.18.0. This completes the plugin artifact
 release; advancing the shell installer pin remains a separate change.
+
+## 2026-09-16 — Prepare v3.0.6 four-tool skill guidance
+
+### Why
+
+The skill must describe the four tools the MCP actually exposes and stop when
+another control-plane mutation has no supported tool. This prepares the
+user-approved guidance update without changing MCP tool behavior.
+
+### What changed
+
+The canonical skill now matches immutable upstream commit
+`1c65e6d1bf4690d7ee3b046bcd8251387b4f701b`, metadata version `d309e051978d`:
+16,060 bytes, SHA-256
+`10b03850ecd87564b457d2df0fcb1a5e6cf3ae205fb695c27114be6c95018e59`.
+It names the four supported tools, forbids bypassing unavailable mutations,
+and pins the coordinated initializer 0.7.1 candidate. README records that both
+releases remain pending review. Package and MCP version metadata advance to
+3.0.6; generated wrappers and six new archives carry the pinned skill. Older
+artifacts and MCP implementation remain unchanged apart from the version.
+
+Regression tests verify the new version and skill pin, exact four-tool guidance,
+read-only status, mutation confirmation, unsupported-operation boundary, and
+initializer fallback across all six installable packages.
+
+### CICD classification
+
+Plugin artifact candidate only, outside the Worker runtime; class D guidance
+and packaging metadata under the sibling `CICD.md`. No runtime or front-door
+deployment. This first commit excludes the provisional manifest; the next
+commit stamps archive URLs with this source commit. Nothing is published.
+
+### Verification
+
+The public raw skill URL matches the supplied generated file byte-for-byte.
+The four release regressions failed before the update and pass afterward.
+`npm run check` passes on Node 18.20.8 and 24.18.0. Full tests on both versions
+pass 30 of 31: only the existing immutable-source comparison fails because
+the new archives are not committed yet. The test is unchanged and will be
+rerun after stamping. Older artifact bytes match `origin/main`, and
+`git diff --check` passes. Tests use mocked HTTP and create no live tenants.
+
+## 2026-09-16 — Stamp the v3.0.6 installer manifest
+
+The v3.0.6 manifest names archive source commit
+`699114f27bb1c258eb824c2f3cd67f17776d7f96`. Stamping changed no source or
+archive bytes. The manifest is 9,400 bytes with SHA-256
+`a295d7b318077a935ae9b0469916f8213a8cdf27b8c9bf7ee604d3007ca06495`.
+
+`npm run check` and all 31 tests now pass on Node 18.20.8 and 24.18.0,
+including the unchanged immutable-source comparison. All 77 older artifact
+files match `origin/main` byte-for-byte, the MCP source differs only in
+`SERVER_VERSION`, and `git diff --check` passes. This is a local plugin
+artifact candidate, with no runtime deployment or publication; initializer
+0.7.1 and core quickstart pin updates remain separate, unreleased work.
