@@ -134,3 +134,17 @@ pass 30 of 31: only the existing immutable-source comparison fails because
 the new archives are not committed yet. The test is unchanged and will be
 rerun after stamping. Older artifact bytes match `origin/main`, and
 `git diff --check` passes. Tests use mocked HTTP and create no live tenants.
+
+## 2026-09-16 — Stamp the v3.0.6 installer manifest
+
+The v3.0.6 manifest names archive source commit
+`699114f27bb1c258eb824c2f3cd67f17776d7f96`. Stamping changed no source or
+archive bytes. The manifest is 9,400 bytes with SHA-256
+`a295d7b318077a935ae9b0469916f8213a8cdf27b8c9bf7ee604d3007ca06495`.
+
+`npm run check` and all 31 tests now pass on Node 18.20.8 and 24.18.0,
+including the unchanged immutable-source comparison. All 77 older artifact
+files match `origin/main` byte-for-byte, the MCP source differs only in
+`SERVER_VERSION`, and `git diff --check` passes. This is a local plugin
+artifact candidate, with no runtime deployment or publication; initializer
+0.7.1 and core quickstart pin updates remain separate, unreleased work.
