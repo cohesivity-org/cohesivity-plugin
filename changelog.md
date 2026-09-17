@@ -240,3 +240,23 @@ is unchanged. Existing immutable artifacts and their pins are not rewritten.
 This is a source documentation correction, not a new client release. All 53
 tests, generated package/artifact checks, and whitespace checks pass on Node
 24.18.0. No publication or deployment is performed.
+
+## 2026-09-17 — Reuse local projects independently of account login
+
+Plugin 4.0.2 validates existing project credentials under the bootstrap lock
+and skips optional account state when reusing them, so expired or malformed
+saved login cannot block integration and guidance updates. New projects keep
+the existing fail-closed account behavior. Social-login provisioning accepts
+IPv6 loopback callbacks while still rejecting non-loopback HTTP.
+
+All wrappers and new v4.0.2 archives carry canonical skill `ac6c3a29928f` from
+mirror `dea8889b43482b91723de57bac17c5f96d84204b`: Connect uses the available
+identity automatically and never asks whether to sign in. Prior archives are
+unchanged. The initializer fallback is 0.8.1; publish it before merging this
+client release.
+
+Both new behavior regressions failed before implementation. Generated checks
+pass; 54/55 tests pass before source stamping, with only the immutable archive
+comparison awaiting this commit. Real PostgreSQL and official MCP SDK checks
+also verify existing-project reuse with expired saved auth. This source commit
+excludes the provisional manifest; the next commit stamps and verifies it.

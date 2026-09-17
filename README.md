@@ -22,7 +22,8 @@ not just tenant creation. In Claude Code, the root must exactly match the
 metadata; all subprocess output is discarded, including on failure. Existing
 incomplete, unsafe, or publicly readable credentials are rejected rather than
 overwritten. A valid existing tenant still runs the quickstart's integration
-and guidance steps.
+and guidance steps without loading optional saved account tokens. Expired or
+malformed login state cannot block reuse of valid project credentials.
 The same server exposes fixed claim, status, and provision operations against
 the Cohesivity Management API. Its provision tool accepts either one resource
 or a resource list, so single and bulk provisioning share one tool. Those
@@ -39,7 +40,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.8.0` package instead of mutable
+pins the exact `@cohesivity/init@0.8.1` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -64,7 +65,7 @@ Account tokens are stored outside the project in
 `$XDG_CONFIG_HOME/cohesivity/mcp-auth.json`, or
 `$HOME/.config/cohesivity/mcp-auth.json` when XDG_CONFIG_HOME is unset, with
 private file and directory permissions. The local MCP refreshes expiring tokens
-before running account bootstrap. Existing invalid, revoked, or guest
+before running account bootstrap for a new project. Existing invalid, revoked, or guest
 credentials fail closed; it never silently creates a guest tenant instead.
 `logout` revokes the saved token family and deletes the local token file,
 returning future new projects to guest bootstrap. If server revocation fails,
@@ -96,7 +97,9 @@ rather than inventing a tool or bypassing MCP through HTTP, a CLI, or a script.
 
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: its OAuth session belongs to
-the MCP client and can use guest access or account sign-in. The account-scoped
+the MCP client. Connect uses an existing browser account session automatically
+or temporary guest access otherwise. It never asks whether to sign in; sign-in
+is a separate optional action initiated by the user. The account-scoped
 grant connects directly to the Cohesivity account without tenant selection
 during consent, and can create the first tenant and manage current or future
 owned tenants. Hosted `claim_tenant`, `tenant_status`, and `provision_resource`
@@ -127,8 +130,8 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.0.1 and initializer
-0.8.0. This guidance does not assert publication or deployment.
+The coordinated candidates are hosted/local plugin 4.0.2 and initializer
+0.8.1. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
 
@@ -221,11 +224,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@27e41382fdaa31e4d32d5019ab76083c20736688`:
+`cohesivity-org/cohesivity-skill@dea8889b43482b91723de57bac17c5f96d84204b`:
 
-- skill metadata version: `c098834bea25`
-- size: 20,265 bytes
-- SHA-256: `ccdc71a865d775709339869a1ae029f88a8f9d789e0cb6fde17e81fe60423d9c`
+- skill metadata version: `ac6c3a29928f`
+- size: 20,640 bytes
+- SHA-256: `b7e11cecc8bb69b7346ebbb7f972faf297f408eb4ab4389e28491ad68e83a68a`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -243,8 +246,8 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.0.1/`; existing
-`artifacts/v4.0.0/` inputs remain immutable. Each client archive
+Current versioned installer inputs live under `artifacts/v4.0.2/`; existing
+`artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
