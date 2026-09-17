@@ -220,3 +220,12 @@ This is a coordinated client release candidate, not a publication. Generated
 package checks pass and 52/53 tests pass before immutable source stamping;
 only the archive-commit comparison awaits this commit. The provisional
 manifest is excluded and will be stamped and fully tested next.
+
+## 2026-09-17 — Stamp the v4.0.1 install manifest
+
+The manifest pins source/archive commit `e21b5c9b881477a020ca29bb7ef3223b4a8449ac`
+with SHA-256 `fc42074cf01a9b0104f7cc3f9118a2d9718245c38177d9ffef45ce24f9817c12`.
+All 53 tests pass on Node 18.20.8 and 24.18.0, including immutable archive
+equality, package isolation, and secret scanning. Generated checks and
+whitespace checks pass. No prior artifact, npm publication, or deployment is
+changed by this candidate metadata commit.
