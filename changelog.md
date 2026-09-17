@@ -229,3 +229,14 @@ All 53 tests pass on Node 18.20.8 and 24.18.0, including immutable archive
 equality, package isolation, and secret scanning. Generated checks and
 whitespace checks pass. No prior artifact, npm publication, or deployment is
 changed by this candidate metadata commit.
+
+## 2026-09-17 — Document direct MCP account connections
+
+The source README now describes account consent without tenant selection and
+requires explicit `tenant_id` for the three hosted tenant-specific tools. This
+matches the coordinated Worker change in cohesivity#515; local helper behavior
+is unchanged. Existing immutable artifacts and their pins are not rewritten.
+
+This is a source documentation correction, not a new client release. All 53
+tests, generated package/artifact checks, and whitespace checks pass on Node
+24.18.0. No publication or deployment is performed.

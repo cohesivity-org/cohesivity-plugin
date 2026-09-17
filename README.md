@@ -97,10 +97,12 @@ rather than inventing a tool or bypassing MCP through HTTP, a CLI, or a script.
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: its OAuth session belongs to
 the MCP client and can use guest access or account sign-in. The account-scoped
-grant can create the first tenant and manage current or future owned tenants;
-an optional tenant chosen during consent is only a default, and ownership is
-checked again on every tenant call. The endpoint returns an OAuth challenge to
-compatible MCP clients. No package contains a bearer token, literal auth header,
+grant connects directly to the Cohesivity account without tenant selection
+during consent, and can create the first tenant and manage current or future
+owned tenants. Hosted `claim_tenant`, `tenant_status`, and `provision_resource`
+each require an explicit `tenant_id` and re-check current claimed ownership or
+the guest's own still-ephemeral creation on every call. The endpoint returns an
+OAuth challenge to compatible MCP clients. No package contains a bearer token, literal auth header,
 client secret, or other credential. The remote server also requires literal
 `confirmed: true` on every mutating tool.
 
