@@ -270,3 +270,17 @@ local reuse regression, IPv6 callbacks, package isolation, and secret checks.
 Generated package/artifact checks, syntax, and whitespace checks pass. Prior
 versioned archives remain unchanged. This metadata commit does not deploy
 the hosted service or publish the initializer.
+
+## 2026-09-18 — Propagate skill PR #10 MCP-line removal, bump 4.0.3
+
+Skill repo PR #10 (`bf7cd4e`) removed the stale "route every control-plane
+mutation through a Cohesivity MCP tool" sentence from the canonical SKILL.md.
+All six client packages still served the old text because they carry their own
+copies. This release syncs them: five non-Claude copies get the canonical
+verbatim, and the Claude-adapted copy gets the same nine targeted edits that
+PR #10 applied (preserving its unique frontmatter and allowed-tools block).
+
+SERVER_VERSION bumps to 4.0.3. Skill pins updated to source commit `bf7cd4e`
+and SHA-256 `be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e`.
+v4.0.3 archives and install manifest generated from plugin commit `cb38404`.
+Prior versioned archives remain unchanged.
