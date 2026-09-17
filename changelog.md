@@ -148,3 +148,95 @@ files match `origin/main` byte-for-byte, the MCP source differs only in
 `SERVER_VERSION`, and `git diff --check` passes. This is a local plugin
 artifact candidate, with no runtime deployment or publication; initializer
 0.7.1 and core quickstart pin updates remain separate, unreleased work.
+
+## 2026-09-16 — Add quickstart bootstrap and optional account login
+
+### Why
+
+Local creation must run the complete quickstart flow, while users can choose
+guest projects or account-owned projects without a separate claim step.
+Account credentials must remain outside both project files and MCP results.
+
+### What changed
+
+`mcp/project-bootstrap.mjs` now downloads the fixed quickstart URL and runs
+Bash in the validated project root with bounded execution, a restricted
+environment, and discarded subprocess output. It preserves private credential
+validation and rejects concurrent quickstarts for one project. CLI login uses
+account-required PKCE and a loopback callback; private account state supports
+serialized refresh, revocation/logout, and persistent bootstrap retry keys.
+Quickstart receives a temporary private authorization-header file rather than
+a token argument. Invalid account state never falls back to guest creation.
+
+Single-resource provisioning now accepts absent configuration for the eleven
+offerings that have no configuration fields, while still rejecting supplied
+fields. Full quickstart side effects and independent local/hosted account
+connections are documented in README and SECURITY.
+
+Plugin/server version 4.0.0 and all six package surfaces carry generated skill
+`7f2fbc207f1d`, pinned to mirror commit
+`cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981`. New v4 archives are deterministic;
+older versioned artifacts are untouched. The provisional manifest is excluded
+from this source commit and will be stamped with its immutable archive commit.
+
+### CICD classification
+
+Client plugin release under the sibling CICD playbook, coordinated with the
+Worker access-mode change and initializer 0.8.0. No deployment, release tag,
+or npm publication is performed by this commit.
+
+### Verification
+
+New quickstart, login, filesystem, callback, token-refresh concurrency, and
+single-provision regressions pass. Package consistency checks pass. On Node
+18.20.8 and 24.18.0, 52 of 53 tests pass before source stamping; only the
+unchanged immutable-archive comparison awaits this commit. The final stamped
+manifest will be tested on both versions before delivery. Older artifact
+bytes match origin/main and whitespace checks pass. Network and client
+installation effects are mocked; no real login or tenant creation was run.
+
+## 2026-09-16 — Stamp the immutable v4 install manifest
+
+The v4.0.0 install manifest now identifies source/archive commit
+`daaee4d68156b27c6fe4eeb38270562071b452ad` and hashes the six committed client
+archives. The manifest SHA-256 is
+`35fcef2844fe1a704776cf6dae94d863848bd7cc609a66f07cbe3b4349b71b8b`.
+All 53 tests pass on both Node 18.20.8 and 24.18.0, including archive equality
+against that immutable commit, secret scanning, package isolation, local
+account flows, and generated-package consistency. `npm run check` and
+`git diff --check` pass. This is the final client-plugin candidate metadata;
+no tag, package publication, or deployment has run.
+
+## 2026-09-17 — Ship hosted file handoff guidance
+
+Plugin 4.0.1 carries skill `c098834bea25` from immutable mirror `27e41382`.
+The hosted creation result now gives the calling agent file contents to save
+directly; browser download is only a fallback. README and SECURITY explain
+the narrow secret-bearing response, client-history exposure, private file
+permissions, and unchanged local/other-tool redaction. All wrappers and new
+v4.0.1 archives are regenerated; existing versioned artifacts are untouched.
+
+This is a coordinated client release candidate, not a publication. Generated
+package checks pass and 52/53 tests pass before immutable source stamping;
+only the archive-commit comparison awaits this commit. The provisional
+manifest is excluded and will be stamped and fully tested next.
+
+## 2026-09-17 — Stamp the v4.0.1 install manifest
+
+The manifest pins source/archive commit `e21b5c9b881477a020ca29bb7ef3223b4a8449ac`
+with SHA-256 `fc42074cf01a9b0104f7cc3f9118a2d9718245c38177d9ffef45ce24f9817c12`.
+All 53 tests pass on Node 18.20.8 and 24.18.0, including immutable archive
+equality, package isolation, and secret scanning. Generated checks and
+whitespace checks pass. No prior artifact, npm publication, or deployment is
+changed by this candidate metadata commit.
+
+## 2026-09-17 — Document direct MCP account connections
+
+The source README now describes account consent without tenant selection and
+requires explicit `tenant_id` for the three hosted tenant-specific tools. This
+matches the coordinated Worker change in cohesivity#515; local helper behavior
+is unchanged. Existing immutable artifacts and their pins are not rewritten.
+
+This is a source documentation correction, not a new client release. All 53
+tests, generated package/artifact checks, and whitespace checks pass on Node
+24.18.0. No publication or deployment is performed.
