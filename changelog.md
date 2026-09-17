@@ -260,3 +260,13 @@ pass; 54/55 tests pass before source stamping, with only the immutable archive
 comparison awaiting this commit. Real PostgreSQL and official MCP SDK checks
 also verify existing-project reuse with expired saved auth. This source commit
 excludes the provisional manifest; the next commit stamps and verifies it.
+
+## 2026-09-17 — Stamp the v4.0.2 install manifest
+
+Pin source/archive commit `9a0f1c86aa1db49bfddb9358c233ab82d538b554`.
+The manifest SHA-256 is `d5634c7d8d1106cea11cb6620dda218f9727173e9ffd636843dc02142e5aaec4`.
+All 55 tests pass, including comparison with the immutable archive commit,
+local reuse regression, IPv6 callbacks, package isolation, and secret checks.
+Generated package/artifact checks, syntax, and whitespace checks pass. Prior
+versioned archives remain unchanged. This metadata commit does not deploy
+the hosted service or publish the initializer.
