@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.0.0");
+  assert.equal(VERSION, "4.0.1");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981");
-  assert.equal(SKILL_VERSION, "7f2fbc207f1d");
-  assert.equal(canonical.length, 18933);
+  assert.equal(SKILL_SOURCE_COMMIT, "27e41382fdaa31e4d32d5019ab76083c20736688");
+  assert.equal(SKILL_VERSION, "c098834bea25");
+  assert.equal(canonical.length, 20265);
   assert.equal(
     SKILL_SHA256,
-    "755f0fed995635cc722ea7ca0987b91e16749b5dcc3fe2a80ae0e540389005db",
+    "ccdc71a865d775709339869a1ae029f88a8f9d789e0cb6fde17e81fe60423d9c",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -774,7 +774,7 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.8\.0/);
-  assert.match(readme, /artifacts\/v4\.0\.0\//);
+  assert.match(readme, /artifacts\/v4\.0\.1\//);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

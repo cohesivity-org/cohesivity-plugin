@@ -206,3 +206,17 @@ against that immutable commit, secret scanning, package isolation, local
 account flows, and generated-package consistency. `npm run check` and
 `git diff --check` pass. This is the final client-plugin candidate metadata;
 no tag, package publication, or deployment has run.
+
+## 2026-09-17 — Ship hosted file handoff guidance
+
+Plugin 4.0.1 carries skill `c098834bea25` from immutable mirror `27e41382`.
+The hosted creation result now gives the calling agent file contents to save
+directly; browser download is only a fallback. README and SECURITY explain
+the narrow secret-bearing response, client-history exposure, private file
+permissions, and unchanged local/other-tool redaction. All wrappers and new
+v4.0.1 archives are regenerated; existing versioned artifacts are untouched.
+
+This is a coordinated client release candidate, not a publication. Generated
+package checks pass and 52/53 tests pass before immutable source stamping;
+only the archive-commit comparison awaits this commit. The provisional
+manifest is excluded and will be stamped and fully tested next.

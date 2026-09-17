@@ -27,7 +27,26 @@ remote MCP can use the same private contact.
   local MCP rejects unsafe or incomplete credential paths and requires private
   credential permissions before and after quickstart. It uses fixed Cohesivity
   routes and filters secrets from tool output.
-- `create_tenant` downloads and runs the full mutable Cohesivity quickstart,
+- Hosted `create_tenant` deliberately returns tenant keys in
+  `credentials_file: { filename: ".cohesivity", content: "<exact file contents>" }`
+  alongside existing metadata in `structuredContent` and the compatible text
+  result. This is the sole secret-bearing MCP response exception, authorized
+  by the existing OAuth `mcp:tenants:create` scope, literal `confirmed: true`,
+  and fresh account ownership or guest-creation checks. The response may enter
+  model or client retained tool history. Other hosted tool outputs retain
+  secret scrubbing, and local MCP output remains metadata-only.
+  The calling agent must write content verbatim to the current project's
+  `.cohesivity` with mode `0600`, gitignore it, and never overwrite a different
+  existing tenant. Never print credentials in chat, logs, or source, or commit
+  them. If the client cannot write safely, it must report that explicitly;
+  the server cannot force a client filesystem write.
+- The hosted `credentials_download_url` is an optional fallback for clients
+  with no writable workspace, not a prerequisite for coding clients. The URL
+  is not a bearer capability. The protected browser endpoint requires the
+  consent browser's guest cookie for its own still-ephemeral creation or an
+  account session that owns the claimed tenant; an MCP bearer alone cannot
+  download the file. Guest download access ends after claim.
+- Local `create_tenant` downloads and runs the full mutable Cohesivity quickstart,
   including detected client installations and project guidance. This is a
   broader trust boundary than an API call; the package hash does not cover the
   downloaded script or its installation dependencies. The initial script GET

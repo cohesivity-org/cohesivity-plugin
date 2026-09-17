@@ -104,6 +104,30 @@ compatible MCP clients. No package contains a bearer token, literal auth header,
 client secret, or other credential. The remote server also requires literal
 `confirmed: true` on every mutating tool.
 
+Hosted `create_tenant` returns existing metadata plus
+`credentials_file: { filename: ".cohesivity", content: "<exact .cohesivity file contents>" }`
+in both `structuredContent` and the compatible text result. The existing OAuth
+`mcp:tenants:create` scope, confirmation, and fresh account ownership or
+guest-creation checks authorize this deliberate secret-bearing response. It
+may enter model or client retained tool history. The calling agent writes the
+content verbatim to the current project's `.cohesivity` with mode `0600` and
+gitignores it. Never overwrite a different existing tenant, print credentials
+in chat, logs, or source, or commit them. If the agent cannot write safely, it
+must report that explicitly; the server cannot force a client filesystem write.
+Other hosted tool outputs retain secret scrubbing; local MCP output remains
+metadata-only.
+
+The non-secret `credentials_download_url` remains an optional fallback for
+clients with no writable workspace, not a prerequisite for coding clients.
+Its protected `/mcp/tenants/:tenant_id/credentials` browser endpoint requires
+the consent browser's guest cookie for its own still-ephemeral creation or
+an account session that owns the claimed tenant. The URL and an MCP bearer
+alone cannot download the file. Guest access ends after claim; reconnect with
+the owning account.
+
+The coordinated candidates are hosted/local plugin 4.0.1 and initializer
+0.8.0. This guidance does not assert publication or deployment.
+
 ## Supported package surfaces
 
 | Surface | Installable package root | Manifest and MCP artifact |
@@ -195,11 +219,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@cb3b6be6ad8a0e9ce27fef5a1fb30ead39430981`:
+`cohesivity-org/cohesivity-skill@27e41382fdaa31e4d32d5019ab76083c20736688`:
 
-- skill metadata version: `7f2fbc207f1d`
-- size: 18,933 bytes
-- SHA-256: `755f0fed995635cc722ea7ca0987b91e16749b5dcc3fe2a80ae0e540389005db`
+- skill metadata version: `c098834bea25`
+- size: 20,265 bytes
+- SHA-256: `ccdc71a865d775709339869a1ae029f88a8f9d789e0cb6fde17e81fe60423d9c`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -217,7 +241,8 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Versioned installer inputs live under `artifacts/v4.0.0/`. Each client archive
+Current versioned installer inputs live under `artifacts/v4.0.1/`; existing
+`artifacts/v4.0.0/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
 byte size and SHA-256 plus every contained file's size/SHA-256 and a canonical
