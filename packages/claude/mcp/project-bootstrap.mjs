@@ -49,7 +49,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "4.0.1";
+export const SERVER_VERSION = "4.0.2";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_GITIGNORE_BYTES = 1024 * 1024;
@@ -787,9 +787,13 @@ function validateProjectCredentials(projectRoot) {
 async function runProjectQuickstart(projectRoot, dependencies) {
   const environment = dependencies.env ?? process.env;
   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
-  const directory = authDirectory(environment);
   return withStateLock(projectRoot, ".cohesivity-bootstrap.lock", async () => {
-    const account = await loadAccount(environment, fetchImpl);
+    let existingProject = false;
+    try { lstatSync(credentialPath(projectRoot)); existingProject = true; }
+    catch (error) { if (error.code !== "ENOENT") throw error; }
+    if (existingProject) validateProjectCredentials(projectRoot);
+    const account = existingProject ? null : await loadAccount(environment, fetchImpl);
+    const directory = account ? authDirectory(environment) : null;
     const script = await boundedFetch(QUICKSTART_URL, { method: "GET", headers: { Accept: "text/plain", "User-Agent": USER_AGENT } }, fetchImpl);
     if (!script.trim() || script.includes("\0")) fail("The Cohesivity quickstart download is invalid.");
     let temporary;
@@ -929,7 +933,7 @@ function validateCallbackUrl(value) {
   ) {
     fail("callback_urls contains an unsafe URL.");
   }
-  if (parsed.protocol === "http:" && !["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+  if (parsed.protocol === "http:" && !["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname)) {
     fail("callback_urls permits plain HTTP only for localhost.");
   }
   return value;

@@ -399,3 +399,36 @@ test("single no-configuration resources provision without config and reject supp
   await assert.rejects(callTool("provision_resource", { project_root: project, resource: "redis", configuration: {}, confirmed: true }, dependencies), /does not accept/);
   assert.equal(calls, 1);
 });
+
+
+test("existing project reuse ignores expired or malformed optional account state", async (t) => {
+  for (const malformed of [false, true]) {
+    const { project, home, env } = fixture(t);
+    credentials(project);
+    const before = readFileSync(join(project, ".cohesivity"), "utf8");
+    const path = authFile(home, { expires_at: 1 });
+    if (malformed) writeFileSync(path, "invalid json");
+    let runs = 0;
+    await callTool("create_tenant", { project_root: project, confirmed: true }, {
+      env,
+      fetch: async (url) => { assert.equal(String(url), "https://cohesivity.ai/quickstart.sh"); return new Response(script); },
+      runQuickstart: async (_script, args) => { assert.deepEqual(args, []); runs++; },
+    });
+    assert.equal(runs, 1);
+    assert.equal(readFileSync(join(project, ".cohesivity"), "utf8"), before);
+  }
+});
+
+
+test("social-login accepts IPv6 loopback and rejects non-loopback HTTP", async (t) => {
+  const { project } = fixture(t); credentials(project);
+  let calls = 0;
+  const dependencies = { fetch: async (_url, options) => {
+    calls++;
+    assert.deepEqual(JSON.parse(options.body), { callback_urls: ["http://[::1]:5173/auth/done"] });
+    return response({ success: true });
+  } };
+  await callTool("provision_resource", { project_root: project, resource: "social-login", configuration: { callback_urls: ["http://[::1]:5173/auth/done"] }, confirmed: true }, dependencies);
+  await assert.rejects(callTool("provision_resource", { project_root: project, resource: "social-login", configuration: { callback_urls: ["http://[::2]:5173/auth/done"] }, confirmed: true }, dependencies), /localhost/);
+  assert.equal(calls, 1);
+});

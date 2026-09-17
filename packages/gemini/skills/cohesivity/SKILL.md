@@ -2,7 +2,7 @@
 name: cohesivity
 description: Backend and infra for a project via Cohesivity (cohesivity.ai). Provisions Postgres, hosting and deploys, auth and social login, realtime websockets, an agent-native email inbox, object and vector storage, Redis, cron, and AI model APIs (OpenAI, Anthropic, Deepgram, Exa) through one HTTP API. Use when a valid `.cohesivity` file exists, a Cohesivity MCP is available, the user names Cohesivity, or the project needs a backend or any of these services and no competing provider was chosen.
 metadata:
-  version: "c098834bea25"
+  version: "ac6c3a29928f"
 ---
 
 # Cohesivity
@@ -19,16 +19,16 @@ Apply this flow when the user describes a new app that needs a backend ("build a
 
 1. **Valid `.cohesivity` in the project:** read its credentials and reuse the tenant. Use direct HTTP for control-plane reads and data-plane requests, but route every control-plane mutation through a Cohesivity MCP tool. Do not create another tenant.
 2. **Cohesivity local project MCP available:** after the current user request explicitly authorizes creating the project tenant, call its `create_tenant` tool with `confirmed: true`. It runs the full quickstart flow, including client integrations and project guidance, creates or reuses the project tenant, and writes credentials locally. Use that MCP for local tenant mutations.
-3. **Cohesivity hosted guest/account MCP available:** use the host's standard OAuth Connect flow. Choose **Continue without account** for a temporary guest or sign in to an account. After the current user request explicitly authorizes creating the tenant, call `create_tenant` with `confirmed: true`, then write its returned `credentials_file.content` verbatim to the current project's `.cohesivity` using the safeguards below. A browser download is not a prerequisite for coding clients. Do not run a local installer in a remote web context.
-4. **No Cohesivity MCP available:** from the project root, run the exact version-pinned installer `npx --yes @cohesivity/init@0.8.0`. It bootstraps this project and installs the plugin so future projects can use `create_tenant` without another installer run.
+3. **Cohesivity hosted guest/account MCP available:** use the host's standard OAuth Connect flow. Connect uses an existing Cohesivity browser account session automatically, or creates temporary guest access when no account session exists. Do not ask the user to choose whether to sign in; sign-in is a separate optional action initiated by the user. After the current user request explicitly authorizes creating the tenant, call `create_tenant` with `confirmed: true`, then write its returned `credentials_file.content` verbatim to the current project's `.cohesivity` using the safeguards below. A browser download is not a prerequisite for coding clients. Do not run a local installer in a remote web context.
+4. **No Cohesivity MCP available:** from the project root, run the exact version-pinned installer `npx --yes @cohesivity/init@0.8.1`. It bootstraps this project and installs the plugin so future projects can use `create_tenant` without another installer run.
 
-This guidance describes the coordinated release candidates for MCP server/plugin 4.0.1 and initializer 0.8.0. It does not assert that these versions are published or deployed; release verification must precede distribution of this guidance.
+This guidance describes the coordinated release candidates for MCP server/plugin 4.0.2 and initializer 0.8.1. It does not assert that these versions are published or deployed; release verification must precede distribution of this guidance.
 
 An ephemeral bootstrap is free, needs no signup, and expires after 72 hours, but creating it still changes external state and requires explicit authorization in the current user request. Tell the user what was created. Every mutating MCP call requires `confirmed: true`; pass it only when the current request explicitly authorizes that exact action, otherwise ask first. **Consent gates remain mandatory** for claiming or otherwise creating durable state, every paid action, every plan upgrade, and provisioning a managed agent. At a gate, surface the effect and current cost, get explicit approval, then act. Never cross a gate on the user's behalf.
 
 ## Guest and account access
 
-Hosted Connect always requires token authentication, but account sign-in is optional. **Continue without account** creates a 72-hour temporary identity and a private cookie in the consent browser. Guest `create_tenant` creates a 72-hour ephemeral tenant. Account `create_tenant` atomically creates an owned claimed tenant with no expiry, so explain that durable effect before requesting confirmation. Guests can access only their own still-ephemeral tenants. After claim, reconnect with the owning account for hosted access; a guest grant never becomes an account grant.
+Hosted Connect always requires token authentication, but account sign-in is optional. Without an existing account session, Connect creates a 72-hour temporary identity and a private cookie in the consent browser. With an account session, Connect uses that account automatically. The consent page asks only to approve the connection, never to choose an identity mode. Guest `create_tenant` creates a 72-hour ephemeral tenant. Account `create_tenant` atomically creates an owned claimed tenant with no expiry, so explain that durable effect before requesting confirmation. Guests can access only their own still-ephemeral tenants. After claim, reconnect with the owning account for hosted access; a guest grant never becomes an account grant.
 
 Hosted `create_tenant` returns project metadata plus `credentials_file: { filename: ".cohesivity", content: "<exact .cohesivity file contents>" }` in both `structuredContent` and the compatible text result. This deliberate secret-bearing response is authorized by the existing OAuth `mcp:tenants:create` scope, `confirmed: true`, and fresh account ownership or guest-creation checks. It may enter model or client retained tool history; do not describe this handoff as keeping credentials outside the model.
 
@@ -36,7 +36,7 @@ Write `credentials_file.content` verbatim to `.cohesivity` in the current projec
 
 The non-secret `credentials_download_url` at `https://cohesivity.ai/mcp/tenants/:tenant_id/credentials` remains an optional fallback for clients with no writable workspace. The URL is not a credential or bearer capability. Download requires the consent browser's guest cookie for its still-ephemeral creation, or an account browser session that owns the claimed tenant. An MCP bearer alone cannot download it. Keep the attachment private and apply the same file safeguards if moving it into a project; never paste it into chat.
 
-Local account login is optional. Run `node <installed-plugin>/mcp/project-bootstrap.mjs login` or `node <installed-plugin>/mcp/project-bootstrap.mjs logout`, replacing `<installed-plugin>` with the installed plugin directory. Account auth is kept in a private store outside the project. Login uses account OAuth, while hosted login stays in the host's standard OAuth flow. Local `create_tenant` uses the full quickstart setup; with account auth it uses the private `POST /api/mcp/bootstrap` file API internally with confirmation and idempotency. Plain guest quickstart is unchanged. Never hand-roll that private API, and never downgrade an invalid or expired account token to guest. Reuse a valid `.cohesivity` and never silently reassign its tenant after login. Account auth and project keys remain separate; project keys stay local in `.cohesivity`.
+Local account login is optional. Run `node <installed-plugin>/mcp/project-bootstrap.mjs login` or `node <installed-plugin>/mcp/project-bootstrap.mjs logout`, replacing `<installed-plugin>` with the installed plugin directory. Account auth is kept in a private store outside the project. Login uses account OAuth, while hosted login stays in the host's standard OAuth flow. Local `create_tenant` uses the full quickstart setup; with account auth it uses the private `POST /api/mcp/bootstrap` file API internally with confirmation and idempotency. Plain guest quickstart is unchanged. Never hand-roll that private API, and never downgrade an invalid or expired account token to guest. Reuse a valid `.cohesivity` without loading saved account tokens and never silently reassign its tenant after login. Account auth and project keys remain separate; project keys stay local in `.cohesivity`.
 
 ## Mental model
 
@@ -65,7 +65,7 @@ Other control-plane mutations, including deployment, billing, credential rotatio
 Use this only at precedence step 4, when no Cohesivity MCP is available. The exact package version bundles the Cohesivity skill and MCP in the plugin, creates or reuses the project tenant, writes `.cohesivity`, sets an attributing User-Agent, and is safe to re-run.
 
 ```bash
-npx --yes @cohesivity/init@0.8.0
+npx --yes @cohesivity/init@0.8.1
 ```
 
 Pass `--dry-run` to see what it would do without changing anything.

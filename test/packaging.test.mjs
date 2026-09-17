@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.0.1");
+  assert.equal(VERSION, "4.0.2");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "27e41382fdaa31e4d32d5019ab76083c20736688");
-  assert.equal(SKILL_VERSION, "c098834bea25");
-  assert.equal(canonical.length, 20265);
+  assert.equal(SKILL_SOURCE_COMMIT, "dea8889b43482b91723de57bac17c5f96d84204b");
+  assert.equal(SKILL_VERSION, "ac6c3a29928f");
+  assert.equal(canonical.length, 20640);
   assert.equal(
     SKILL_SHA256,
-    "ccdc71a865d775709339869a1ae029f88a8f9d789e0cb6fde17e81fe60423d9c",
+    "b7e11cecc8bb69b7346ebbb7f972faf297f408eb4ab4389e28491ad68e83a68a",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -211,7 +211,7 @@ test("every skill documents exactly the four supported MCP tools and fails close
     assert.match(operations, /Every mutation still requires `confirmed: true`/);
     assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not supported/);
     assert.match(operations, /Do not invent a tool or bypass MCP with direct HTTP, a CLI, or a script, even with user approval/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.0/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.1/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -773,7 +773,7 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.8\.0/);
+  assert.match(readme, /@cohesivity\/init@0\.8\.1/);
   assert.match(readme, /artifacts\/v4\.0\.1\//);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
