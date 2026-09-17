@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.0.2");
+  assert.equal(VERSION, "4.0.3");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "dea8889b43482b91723de57bac17c5f96d84204b");
+  assert.equal(SKILL_SOURCE_COMMIT, "bf7cd4e14840c309a5db7fa17dc54623d629cd59");
   assert.equal(SKILL_VERSION, "ac6c3a29928f");
-  assert.equal(canonical.length, 20640);
+  assert.equal(canonical.length, 20663);
   assert.equal(
     SKILL_SHA256,
-    "b7e11cecc8bb69b7346ebbb7f972faf297f408eb4ab4389e28491ad68e83a68a",
+    "be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -209,8 +209,8 @@ test("every skill documents exactly the four supported MCP tools and fails close
     assert.deepEqual([...operations.matchAll(/^- `([^`]+)`: /gm)].map((match) => match[1]), names);
     assert.match(operations, /`tenant_status` is read-only/);
     assert.match(operations, /Every mutation still requires `confirmed: true`/);
-    assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not supported/);
-    assert.match(operations, /Do not invent a tool or bypass MCP with direct HTTP, a CLI, or a script, even with user approval/);
+    assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not covered by these tools/);
+    assert.match(operations, /use direct HTTP with the management key/);
     assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.1/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }

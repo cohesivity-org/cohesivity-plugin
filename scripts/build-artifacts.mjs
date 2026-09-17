@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { gzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_MCP_SOURCE, ROOT, VERSION, expectedFiles } from "./build-packages.mjs";
@@ -95,7 +95,12 @@ export function deterministicArchive(files) {
     if (remainder !== 0) chunks.push(Buffer.alloc(512 - remainder));
   }
   chunks.push(Buffer.alloc(1024));
-  return gzipSync(Buffer.concat(chunks), { level: 9, mtime: 0 });
+  const gz = gzipSync(Buffer.concat(chunks), { level: 9, mtime: 0 });
+  // Byte 9 is the gzip OS field — zlib hardcodes it per platform (0x03 on
+  // Linux, 0x13 on macOS).  Force Unix so archives are byte-identical
+  // regardless of where they were generated.
+  gz[9] = 0x03;
+  return gz;
 }
 
 function packageFiles(allFiles, client, root) {
@@ -203,16 +208,53 @@ export function readTrackedSourceCommit(root = ROOT) {
   return manifest.source.commit;
 }
 
+function archiveContentEqual(actual, expected) {
+  if (actual.equals(expected)) return true;
+  // gzip's deflate stream is platform-dependent (macOS vs Linux), so fall
+  // back to comparing the decompressed tar bytes when the gzip differs.
+  try {
+    return gunzipSync(actual).equals(gunzipSync(expected));
+  } catch {
+    return false;
+  }
+}
+
 export function checkArtifacts(root = ROOT) {
   const sourceCommit = readTrackedSourceCommit(root);
   assert(sourceCommit, `${INSTALL_MANIFEST} is missing; generate release artifacts first`);
   const expected = expectedArtifacts(sourceCommit, root);
+
+  // First pass: verify archive tar content matches expected (tolerating gzip
+  // platform differences), and collect the committed archive bytes so the
+  // manifest can be validated against what's actually on disk.
+  const committedArchives = new Map();
   for (const [path, contents] of expected) {
+    if (!path.endsWith(".tar.gz")) continue;
     const absolute = resolve(root, path);
     assert(existsSync(absolute), `missing release artifact: ${path}`);
     assert(statSync(absolute).isFile(), `release artifact is not a file: ${path}`);
-    assert(readFileSync(absolute).equals(contents), `release artifact is stale: ${path}`);
+    const actual = readFileSync(absolute);
+    assert(archiveContentEqual(actual, contents), `release artifact is stale: ${path}`);
+    committedArchives.set(path, actual);
   }
+
+  // Rebuild the expected manifest using committed archive bytes so that
+  // platform-dependent gzip differences don't cause a manifest hash mismatch.
+  const expectedManifest = expected.get(INSTALL_MANIFEST);
+  assert(expectedManifest, `${INSTALL_MANIFEST} was not generated`);
+  const manifest = JSON.parse(expectedManifest.toString());
+  for (const pkg of manifest.packages) {
+    const archivePath = `${ARTIFACT_DIRECTORY}/${pkg.archive}`;
+    const committed = committedArchives.get(archivePath);
+    if (committed) {
+      pkg.size = committed.length;
+      pkg.sha256 = sha256(committed);
+    }
+  }
+  const adjustedManifest = Buffer.from(json(manifest));
+  const actualManifest = readFileSync(resolve(root, INSTALL_MANIFEST));
+  assert(actualManifest.equals(adjustedManifest), `release artifact is stale: ${INSTALL_MANIFEST}`);
+
   const actualPaths = walkFiles(resolve(root, ARTIFACT_DIRECTORY)).map(
     (path) => `${ARTIFACT_DIRECTORY}/${path}`,
   );
