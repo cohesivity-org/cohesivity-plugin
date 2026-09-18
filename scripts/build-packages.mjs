@@ -16,10 +16,10 @@ export const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 export const VERSION = SERVER_VERSION;
 export const MCP_ENDPOINT = "https://cohesivity.ai/mcp/manage";
 export const LOCAL_MCP_SOURCE = "mcp/project-bootstrap.mjs";
-export const SKILL_SOURCE_COMMIT = "9ff9e4e527f94c21c97f5fdf1c6613f093fe5a57";
-export const SKILL_VERSION = "3042cb861101";
+export const SKILL_SOURCE_COMMIT = "2d75c54ab1def051bfb5ab2295262838b0113482";
+export const SKILL_VERSION = "5969c65d81bb";
 export const SKILL_SHA256 =
-  "27e5848dd2b521230a83fcc9fb3f809c15cf36262d90653cb919a47c937c4712";
+  "d30a6b68c8a99c1ce1b26540ae51df3e8c8fe70af89acf06955b6a9fb679e3a4";
 
 const PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
 const MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";

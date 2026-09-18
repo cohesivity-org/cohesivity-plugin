@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.1.0");
+  assert.equal(VERSION, "4.1.1");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "9ff9e4e527f94c21c97f5fdf1c6613f093fe5a57");
-  assert.equal(SKILL_VERSION, "3042cb861101");
-  assert.equal(canonical.length, 21905);
+  assert.equal(SKILL_SOURCE_COMMIT, "2d75c54ab1def051bfb5ab2295262838b0113482");
+  assert.equal(SKILL_VERSION, "5969c65d81bb");
+  assert.equal(canonical.length, 22129);
   assert.equal(
     SKILL_SHA256,
-    "27e5848dd2b521230a83fcc9fb3f809c15cf36262d90653cb919a47c937c4712",
+    "d30a6b68c8a99c1ce1b26540ae51df3e8c8fe70af89acf06955b6a9fb679e3a4",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -604,6 +604,14 @@ test("management tools use fixed API routes and redact credential-bearing respon
     );
     assert.equal("body" in requests[0].options, false);
     assert.equal(requests[0].options.headers.Authorization, `Bearer ${managementKey}`);
+    for (const { options } of requests) {
+      assert.deepEqual(options.headers, {
+        Accept: "application/json",
+        Authorization: `Bearer ${managementKey}`,
+        ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
+        "User-Agent": `cohesivity-project-bootstrap/${VERSION}`,
+      });
+    }
     assert.deepEqual(JSON.parse(requests[2].options.body), { region: "apac" });
     assert.deepEqual(JSON.parse(requests[3].options.body), {
       resources: ["postgres", "redis"],
@@ -776,8 +784,9 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.8\.1/);
-  assert.match(readme, /artifacts\/v4\.0\.1\//);
+  assert.match(readme, /@cohesivity\/init@0\.8\.3/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.1\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.1 and initializer\n0\.8\.3/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

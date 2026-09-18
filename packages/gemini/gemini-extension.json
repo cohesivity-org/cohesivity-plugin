@@ -1,6 +1,6 @@
 {
   "name": "cohesivity",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
   "mcpServers": {
     "cohesivity": {

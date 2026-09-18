@@ -52,7 +52,7 @@ test("give_feedback sends only trimmed text to the fixed endpoint and projects o
       env: { SECRET: "private-env-marker" },
       fetch: async (url, options) => {
         fetches++;
-        assert.equal(String(url), "https://cohesivity.ai/api/feedback");
+        assert.equal(String(url), "https://cohesivity.ai/api/feedback/service");
         assert.equal(options.method, "POST");
         assert.equal(options.redirect, "error");
         assert.equal(options.headers.Authorization, `Bearer ${managementKey}`);
@@ -130,6 +130,7 @@ test("give_feedback fails safely on invalid or failed responses without retrying
     () => new Response(""),
     () => new Response("private-invalid-json-marker"),
     () => response({ success: true, error: "private_server_instruction", message: "private-person-marker" }, 400),
+    () => response({ error: "route_not_found" }, 404),
     () => response({ error: "private_server_instruction" }, 429),
     () => response({ error: "private_server_instruction" }, 500),
     () => new Response("", { headers: { "content-length": "3000000" } }),

@@ -316,3 +316,22 @@ All 62 tests now pass on Node 18.20.8 and 24.18.0, including archive equality,
 secret scanning, five-tool stdio discovery in every package, and feedback
 privacy/approval checks. Generated checks and whitespace checks pass. Older
 artifacts remain unchanged; this candidate is not an npm or backend release.
+
+## 2026-09-18 — Preserve discount eligibility during service feedback
+
+Plugin 4.1.1 sends `give_feedback` to `/api/feedback/service`. The existing
+storage handler appends normally, but this route does not mint or consume
+the one-time billing discount. On an older backend it fails with a fixed
+error instead of falling back to the discount endpoint. This avoids losing
+a discount token that MCP intentionally does not expose.
+
+Sync canonical skill `5969c65d81bb` from mirror `2d75c54a`, retain all prior
+immutable artifacts, and generate new 4.1.1 archives. Correct stale README
+installer/version/artifact references found during review and add assertions
+against their recurrence. The minimal tool description and consent gates
+are unchanged.
+
+The route and documentation regressions failed before correction. Generated
+checks, syntax, and whitespace pass. On Node 18.20.8 and 24.18.0, 61/62 tests
+pass before source stamping; the sole pending check is archive equality
+against this source commit. No npm publication, merge, or deploy ran.

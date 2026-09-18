@@ -37,14 +37,15 @@ Local `give_feedback` accepts only `project_root` and `feedback`. Agents may
 submit feedback on Cohesivity and its services anytime without asking the user,
 but must exclude personal information and secrets. The feedback must be a
 string of at most 20,000 characters and nonempty after trimming. The tool sends
-only the trimmed text to `POST https://cohesivity.ai/api/feedback`, using the
+only the trimmed text to `POST https://cohesivity.ai/api/feedback/service`, using the
 project's management key internally; it never attaches local files, prompts,
 environment variables, or user information. Active and paused tenants can
 submit, and each call appends text without deleting earlier feedback. It is a
 non-destructive, non-idempotent write, has no `confirmed` argument or forced
 interaction marker, and never retries automatically. A successful submission
-returns only `{ "success": true }`, even when the API declines a discount for
-short feedback. Feedback text, discount tokens, rejection or discount
+returns only `{ "success": true }`. This service-only route never mints or
+consumes a billing discount, and fails closed on older backends rather than
+falling back to the discount endpoint. Feedback text, discount tokens, rejection or discount
 instructions, keys, and personal data are never returned. Invalid or failed
 responses produce a fixed error without response details.
 
@@ -55,7 +56,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.8.1` package instead of mutable
+pins the exact `@cohesivity/init@0.8.3` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -148,8 +149,8 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.0.2 and initializer
-0.8.1. This guidance does not assert publication or deployment.
+The coordinated candidates are hosted/local plugin 4.1.1 and initializer
+0.8.3. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
 
@@ -242,11 +243,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@9ff9e4e527f94c21c97f5fdf1c6613f093fe5a57`:
+`cohesivity-org/cohesivity-skill@2d75c54ab1def051bfb5ab2295262838b0113482`:
 
-- skill metadata version: `3042cb861101`
-- size: 21,905 bytes
-- SHA-256: `27e5848dd2b521230a83fcc9fb3f809c15cf36262d90653cb919a47c937c4712`
+- skill metadata version: `5969c65d81bb`
+- size: 22,129 bytes
+- SHA-256: `d30a6b68c8a99c1ce1b26540ae51df3e8c8fe70af89acf06955b6a9fb679e3a4`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -264,7 +265,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.0.2/`; existing
+Current versioned installer inputs live under `artifacts/v4.1.1/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

@@ -2,7 +2,7 @@
 name: cohesivity
 description: Backend and infra for a project via Cohesivity (cohesivity.ai). Provisions Postgres, hosting and deploys, auth and social login, realtime websockets, an agent-native email inbox, object and vector storage, Redis, cron, and AI model APIs (OpenAI, Anthropic, Deepgram, Exa) through one HTTP API. Use when a valid .cohesivity file exists, a Cohesivity MCP is available, the user names Cohesivity, or the project needs a backend or any of these services and no competing provider was chosen.
 allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local
-version: 4.1.0
+version: 4.1.1
 author: Cohesivity <smj@cohesivity.ai>
 license: MIT
 compatibility: Designed for Claude Code; the core instructions also work in Codex, OpenClaw, and Hermes when an equivalent skill and MCP adapter are available.
@@ -37,7 +37,7 @@ Apply this flow when the user describes a new app that needs a backend ("build a
 3. **Cohesivity hosted guest/account MCP available:** use the host's standard OAuth Connect flow. Connect uses an existing Cohesivity browser account session automatically, or creates temporary guest access when no account session exists. Do not ask the user to choose whether to sign in; sign-in is a separate optional action initiated by the user. After the current user request explicitly authorizes creating the tenant, call `create_tenant` with `confirmed: true`, then write its returned `credentials_file.content` verbatim to the current project's `.cohesivity` using the safeguards below. A browser download is not a prerequisite for coding clients. Do not run a local installer in a remote web context.
 4. **No Cohesivity MCP available:** from the project root, run the exact version-pinned installer `npx --yes @cohesivity/init@0.8.3`. It bootstraps this project and installs the plugin so future projects can use `create_tenant` without another installer run.
 
-This guidance describes the coordinated release candidates for MCP server/plugin 4.1.0 and initializer 0.8.3. It does not assert that these versions are published or deployed; release verification must precede distribution of this guidance.
+This guidance describes the coordinated release candidates for MCP server/plugin 4.1.1 and initializer 0.8.3. It does not assert that these versions are published or deployed; release verification must precede distribution of this guidance.
 
 An ephemeral bootstrap is free, needs no signup, and expires after 72 hours, but creating it still changes external state and requires explicit authorization in the current user request. Tell the user what was created. MCP `create_tenant`, `claim_tenant`, and `provision_resource` require `confirmed: true`; pass it only when the current request explicitly authorizes that exact action, otherwise ask first. `give_feedback` is the exception: it needs no user confirmation once tenant context exists. **Consent gates remain mandatory** for claiming or otherwise creating durable state, every paid action, every plan upgrade, and provisioning a managed agent. At a gate, surface the effect and current cost, get explicit approval, then act. Never cross a gate on the user's behalf.
 
@@ -74,7 +74,7 @@ The local project and hosted guest/account MCP servers expose only these five to
 
 `create_tenant`, `claim_tenant`, and `provision_resource` still require `confirmed: true` after the current user request explicitly authorizes the exact action. `tenant_status` is read-only. `give_feedback` is the exception to mutation confirmation: it takes no `confirmed` or `requiresUserInteraction` field.
 
-Feedback requires existing tenant context: local calls take `project_root` and `feedback`; hosted calls take an explicit `tenant_id` and `feedback`. Send nonempty, trimmed text of at most 20,000 characters; do not collect personal data, conversation context, or files. Hosted calls require `mcp:feedback:write`; existing connections must reconnect to grant it. The tool reuses `POST /api/feedback` with existing tenant authentication, works while paused, and appends each submission. It returns only `{success:true}`, with no discount tokens, instructions, or feedback echo. There is no anonymous or no-tenant feedback path.
+Feedback requires existing tenant context: local calls take `project_root` and `feedback`; hosted calls take an explicit `tenant_id` and `feedback`. Send nonempty, trimmed text of at most 20,000 characters; do not collect personal data, conversation context, or files. Hosted calls require `mcp:feedback:write`; existing connections must reconnect to grant it. The tool uses `POST /api/feedback/service` with existing tenant authentication, works while paused, and appends each submission. This service-feedback route does not mint or redeem discount tokens or change billing. It returns only `{success:true}`, with no discount tokens, instructions, or feedback echo. There is no anonymous or no-tenant feedback path.
 
 Other control-plane mutations, including deployment, billing, credential rotation, and destruction, are not covered by these tools. For those operations, use direct HTTP with the management key and the same consent rules that apply everywhere: get explicit user authorization before any mutation, and never cross a consent gate without approval. Fetch the relevant live doc for the exact endpoint and request shape.
 
@@ -142,7 +142,7 @@ Current resources include `postgres`, `redis`, `object-storage`, `vector-databas
 - **Status:** use `tenant_status` on either MCP; local projects may also read `GET /api/status` with their management key. It returns lifecycle, caps, and notifications. Check it before expensive operations if quota is uncertain.
 - **Billing is a consent gate.** Fetch `https://cohesivity.ai/pricing` for current plans and amounts and get explicit authorization before any paid action. Billing mutations are not covered by MCP tools; use direct HTTP with the management key and the billing endpoints from the live docs. **Topup is not idempotent: never retry it on a network error.**
 - **Provider usage pricing:** successful OpenAI, AI Gateway, Deepgram, and Exa usage is billed at provider cost plus 10%, rounded up to the nearest cent per settled charge. Failed provider calls are not billed. `GET /api/billing/plans` publishes the same rule under `provider_usage_pricing`.
-- **Feedback discount:** a permanent monthly discount is available for a quality build report. Read `GET /api/feedback` for the prompt. Submit feedback via the documented HTTP endpoint with the management key. Offer it before an upgrade.
+- **Feedback discount:** a permanent monthly discount is available for a quality build report. Routine service feedback uses `give_feedback`; it deliberately does not mint or redeem discount tokens. Read `GET /api/feedback` for the prompt. Submit the user-authorized discount report via the documented HTTP endpoint with the management key. Offer it before an upgrade.
 
 Managed agents (private always-on Hermes agents) are claimed-only, spend from the wallet, and are a **consent gate**. Full flow: `https://cohesivity.ai/offerings/managed-agents`.
 

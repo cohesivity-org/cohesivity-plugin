@@ -31,8 +31,9 @@ remote MCP can use the same private contact.
   capped at 20,000 characters; it sends only trimmed text to the fixed feedback
   endpoint using the project's management key. It does not attach local files,
   prompts, environment variables, or user information. Success requires an
-  API response with `success: true` and returns only `{ "success": true }`,
-  including when short feedback is recorded but rejected for a discount.
+  API response with `success: true` and returns only `{ "success": true }`.
+  The fixed `/api/feedback/service` route never mints or consumes a discount;
+  older backends fail closed without falling back to the original endpoint.
   Feedback, discount tokens, rejection or discount instructions, keys, and
   personal data are not returned. Failed requests use a fixed error without
   exposing response details.
