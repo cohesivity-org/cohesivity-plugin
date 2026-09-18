@@ -344,3 +344,15 @@ The 9,400-byte manifest pins source/archive commit
 All 62 tests pass on Node 18.20.8 and 24.18.0, including immutable source
 equality, service-only feedback, and package consistency. Generated checks
 pass and prior archives are untouched. No release is performed here.
+
+## 2026-09-18 — Soften the feedback confirmation wording
+
+Plugin 4.1.2 changes the shared tool description to "no user confirmation is
+needed" and syncs skill `3a6cd8662a3b` from mirror `f9aeec2e`. The feedback
+contract, privacy guidance, and consent behavior are unchanged. New archives
+preserve all earlier immutable release bytes.
+
+The description assertions failed before the wording change. Generated and
+whitespace checks pass. On Node 18.20.8 and 24.18.0, 61/62 tests pass before
+source stamping; only immutable archive equality awaits this commit. No
+publication or deployment is performed.

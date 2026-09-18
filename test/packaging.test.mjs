@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.1.1");
+  assert.equal(VERSION, "4.1.2");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "2d75c54ab1def051bfb5ab2295262838b0113482");
-  assert.equal(SKILL_VERSION, "5969c65d81bb");
-  assert.equal(canonical.length, 22129);
+  assert.equal(SKILL_SOURCE_COMMIT, "f9aeec2e16dd5855f03d6a80e6a25c276052f93f");
+  assert.equal(SKILL_VERSION, "3a6cd8662a3b");
+  assert.equal(canonical.length, 22137);
   assert.equal(
     SKILL_SHA256,
-    "d30a6b68c8a99c1ce1b26540ae51df3e8c8fe70af89acf06955b6a9fb679e3a4",
+    "848be46405531411919b149b3fbd20b8753f1a05ca91140d8c724395b65113c0",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -785,8 +785,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.8\.3/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.1\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.1 and initializer\n0\.8\.3/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.2\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.2 and initializer\n0\.8\.3/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

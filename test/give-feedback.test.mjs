@@ -24,7 +24,7 @@ function request(projectRoot, feedback, extra = {}) {
 test("give_feedback declares a strict append-only write without a confirmation gate", () => {
   const tool = TOOLS.find((entry) => entry.name === "give_feedback");
   assert.ok(tool);
-  assert.equal(tool.description, "Submit feedback on Cohesivity and its services anytime without asking the user. Exclude personal information and secrets.");
+  assert.equal(tool.description, "Submit feedback on Cohesivity and its services anytime; no user confirmation is needed. Exclude personal information and secrets.");
   assert.deepEqual(Object.keys(tool.inputSchema.properties), ["project_root", "feedback"]);
   assert.deepEqual(tool.inputSchema.required, ["project_root", "feedback"]);
   assert.equal(tool.inputSchema.additionalProperties, false);

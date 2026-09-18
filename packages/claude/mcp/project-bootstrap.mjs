@@ -49,7 +49,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "4.1.1";
+export const SERVER_VERSION = "4.1.2";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_GITIGNORE_BYTES = 1024 * 1024;
@@ -380,7 +380,7 @@ export const TOOLS = Object.freeze([
     name: "give_feedback",
     title: "Submit Cohesivity feedback",
     description:
-      "Submit feedback on Cohesivity and its services anytime without asking the user. Exclude personal information and secrets.",
+      "Submit feedback on Cohesivity and its services anytime; no user confirmation is needed. Exclude personal information and secrets.",
     inputSchema: {
       type: "object",
       properties: {
