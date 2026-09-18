@@ -19,10 +19,24 @@ This policy covers the portable plugin, native client packages, bundled skill,
 local MCP server, and package generators. Reports about the hosted API or
 remote MCP can use the same private contact.
 
-- Local MCP mutations require literal `confirmed: true`. This is a code-level
-  input check, not proof of human consent: the calling agent must obtain the
-  user's authorization for the exact action. Claude's interaction marker adds
-  a client-specific prompt; other clients need their own approval controls.
+- Local MCP creation, claiming, and provisioning require literal
+  `confirmed: true`. This is a code-level input check, not proof of human
+  consent: the calling agent must obtain the user's authorization for the
+  exact action. Claude's interaction marker adds a client-specific prompt;
+  other clients need their own approval controls.
+- Local `give_feedback` is the sole write without a confirmation argument or
+  forced interaction marker. It appends feedback for active or paused tenants
+  and never retries automatically. Agents must exclude personal information
+  and secrets. Its only inputs are `project_root` and nonempty feedback text
+  capped at 20,000 characters; it sends only trimmed text to the fixed feedback
+  endpoint using the project's management key. It does not attach local files,
+  prompts, environment variables, or user information. Success requires an
+  API response with `success: true` and returns only `{ "success": true }`.
+  The fixed `/api/feedback/service` route never mints or consumes a discount;
+  older backends fail closed without falling back to the original endpoint.
+  Feedback, discount tokens, rejection or discount instructions, keys, and
+  personal data are not returned. Failed requests use a fixed error without
+  exposing response details.
 - Tenant credentials stay in the project's gitignored `.cohesivity` file. The
   local MCP rejects unsafe or incomplete credential paths and requires private
   credential permissions before and after quickstart. It uses fixed Cohesivity

@@ -24,14 +24,30 @@ incomplete, unsafe, or publicly readable credentials are rejected rather than
 overwritten. A valid existing tenant still runs the quickstart's integration
 and guidance steps without loading optional saved account tokens. Expired or
 malformed login state cannot block reuse of valid project credentials.
-The same server exposes fixed claim, status, and provision operations against
-the Cohesivity Management API. Its provision tool accepts either one resource
+The same server exposes fixed claim, status, provision, and feedback operations
+against the Cohesivity Management API. Its provision tool accepts either one resource
 or a resource list, so single and bulk provisioning share one tool. Those
 operations read the project's `.cohesivity` management credential internally,
 project allowlisted responses, and never expose either `coh_*` value. There is
-no generic shell command or arbitrary HTTP proxy. Every mutating tool requires
-literal `confirmed: true`, and Claude Code is instructed to prompt on every
-such call even in permissive permission modes.
+no generic shell command or arbitrary HTTP proxy. Creation, claiming, and
+provisioning require literal `confirmed: true`, and Claude Code is instructed
+to prompt on every such call even in permissive permission modes.
+
+Local `give_feedback` accepts only `project_root` and `feedback`. Agents may
+submit feedback on Cohesivity and its services anytime without asking the user,
+but must exclude personal information and secrets. The feedback must be a
+string of at most 20,000 characters and nonempty after trimming. The tool sends
+only the trimmed text to `POST https://cohesivity.ai/api/feedback/service`, using the
+project's management key internally; it never attaches local files, prompts,
+environment variables, or user information. Active and paused tenants can
+submit, and each call appends text without deleting earlier feedback. It is a
+non-destructive, non-idempotent write, has no `confirmed` argument or forced
+interaction marker, and never retries automatically. A successful submission
+returns only `{ "success": true }`. This service-only route never mints or
+consumes a billing discount, and fails closed on older backends rather than
+falling back to the discount endpoint. Feedback text, discount tokens, rejection or discount
+instructions, keys, and personal data are never returned. Invalid or failed
+responses produce a fixed error without response details.
 
 Tool-call requests accept optional object-valued `_meta` alongside `name` and
 `arguments`, including Codex request metadata. Metadata is not forwarded to
@@ -40,7 +56,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.8.1` package instead of mutable
+pins the exact `@cohesivity/init@0.8.3` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -89,11 +105,12 @@ the project. Only remove a leftover empty lock directory after confirming no
 login, logout, or bootstrap process is still using it; retry keys and credential
 files should stay intact.
 
-The source MCP still exposes only `create_tenant`, `claim_tenant`, `tenant_status`,
-and `provision_resource`; login/logout are CLI operations, not new tools.
-The skill requires
-agents to stop when another control-plane mutation has no supported tool,
-rather than inventing a tool or bypassing MCP through HTTP, a CLI, or a script.
+The source MCP exposes only `create_tenant`, `claim_tenant`, `tenant_status`,
+`provision_resource`, and `give_feedback`; login/logout are CLI operations, not
+new tools.
+For other control-plane operations, the skill allows direct HTTP with the
+management key after explicit authorization. Feedback is the only MCP write
+that does not require per-call approval.
 
 The **remote management MCP connection** at
 `https://cohesivity.ai/mcp/manage` is different: its OAuth session belongs to
@@ -102,12 +119,14 @@ or temporary guest access otherwise. It never asks whether to sign in; sign-in
 is a separate optional action initiated by the user. The account-scoped
 grant connects directly to the Cohesivity account without tenant selection
 during consent, and can create the first tenant and manage current or future
-owned tenants. Hosted `claim_tenant`, `tenant_status`, and `provision_resource`
+owned tenants. Hosted `claim_tenant`, `tenant_status`, `provision_resource`, and `give_feedback`
 each require an explicit `tenant_id` and re-check current claimed ownership or
 the guest's own still-ephemeral creation on every call. The endpoint returns an
 OAuth challenge to compatible MCP clients. No package contains a bearer token, literal auth header,
-client secret, or other credential. The remote server also requires literal
-`confirmed: true` on every mutating tool.
+client secret, or other credential. The remote server requires literal
+`confirmed: true` for creation, claiming, and provisioning. `give_feedback`
+requires the separate `mcp:feedback:write` OAuth scope but no per-call approval;
+existing hosted connections must reconnect to grant that permission.
 
 Hosted `create_tenant` returns existing metadata plus
 `credentials_file: { filename: ".cohesivity", content: "<exact .cohesivity file contents>" }`
@@ -130,8 +149,8 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.0.2 and initializer
-0.8.1. This guidance does not assert publication or deployment.
+The coordinated candidates are hosted/local plugin 4.1.2 and initializer
+0.8.3. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
 
@@ -224,11 +243,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@bf7cd4e14840c309a5db7fa17dc54623d629cd59`:
+`cohesivity-org/cohesivity-skill@f9aeec2e16dd5855f03d6a80e6a25c276052f93f`:
 
-- skill metadata version: `ac6c3a29928f`
-- size: 20,663 bytes
-- SHA-256: `be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e`
+- skill metadata version: `3a6cd8662a3b`
+- size: 22,137 bytes
+- SHA-256: `848be46405531411919b149b3fbd20b8753f1a05ca91140d8c724395b65113c0`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -246,7 +265,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.0.2/`; existing
+Current versioned installer inputs live under `artifacts/v4.1.2/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

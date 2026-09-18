@@ -54,7 +54,7 @@ for (const packageRoot of packageRoots) {
       assert.equal(replies[0].result.serverInfo.version, version);
       assert.deepEqual(replies[0].result.capabilities, { tools: { listChanged: false } });
       assert.deepEqual(replies[1].result.tools.map((tool) => tool.name), [
-        "create_tenant", "claim_tenant", "tenant_status", "provision_resource",
+        "create_tenant", "claim_tenant", "tenant_status", "provision_resource", "give_feedback",
       ]);
       assert.deepEqual(replies[2].result, {});
       assert.equal(replies[3].error.code, -32700);

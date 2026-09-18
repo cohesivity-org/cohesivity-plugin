@@ -284,3 +284,83 @@ SERVER_VERSION bumps to 4.0.3. Skill pins updated to source commit `bf7cd4e`
 and SHA-256 `be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e`.
 v4.0.3 archives and install manifest generated from plugin commit `cb38404`.
 Prior versioned archives remain unchanged.
+
+## 2026-09-18 — Add the give_feedback tool
+
+Local MCP 4.1.0 adds `give_feedback` using the existing authenticated feedback
+endpoint. It accepts a project root and nonempty feedback text, does not ask
+for confirmation, and instructs agents to exclude personal information and
+secrets. Only trimmed feedback is sent; no files, prompts, or extra context are
+attached. Successful submissions return only `{success:true}`. Failed requests
+return a fixed error and are never retried automatically. Creation, claim,
+and provisioning approval checks remain intact.
+
+Sync skill `3042cb861101` from mirror `9ff9e4e5`, regenerate all client wrappers,
+and build new 4.1.0 archives. The canonical guidance documents the hosted
+`mcp:feedback:write` permission and initializer 0.8.3 fallback. Prior immutable
+artifacts are unchanged; publish the initializer before merging this release.
+
+Seven feedback regressions failed before implementation. On Node 18.20.8 and
+24.18.0, 61 of 62 tests pass before source stamping; only the immutable archive
+comparison awaits this source commit. Generated checks, syntax, and whitespace
+checks pass. The provisional install manifest is excluded and will be stamped
+and fully verified in the next commit. No real feedback, npm publication, or
+backend deployment was performed.
+
+## 2026-09-18 — Stamp the 4.1.0 install manifest
+
+The install manifest pins immutable source/archive commit
+`14c8f6bb1bef1fbcdbdbfcd16be43778d3cf61d2`. Its 9,400 bytes have SHA-256
+`c3c435061a392af1c39f222eaf895ea48a42a5fa4652d343d7f6df1ec400553f`.
+All 62 tests now pass on Node 18.20.8 and 24.18.0, including archive equality,
+secret scanning, five-tool stdio discovery in every package, and feedback
+privacy/approval checks. Generated checks and whitespace checks pass. Older
+artifacts remain unchanged; this candidate is not an npm or backend release.
+
+## 2026-09-18 — Preserve discount eligibility during service feedback
+
+Plugin 4.1.1 sends `give_feedback` to `/api/feedback/service`. The existing
+storage handler appends normally, but this route does not mint or consume
+the one-time billing discount. On an older backend it fails with a fixed
+error instead of falling back to the discount endpoint. This avoids losing
+a discount token that MCP intentionally does not expose.
+
+Sync canonical skill `5969c65d81bb` from mirror `2d75c54a`, retain all prior
+immutable artifacts, and generate new 4.1.1 archives. Correct stale README
+installer/version/artifact references found during review and add assertions
+against their recurrence. The minimal tool description and consent gates
+are unchanged.
+
+The route and documentation regressions failed before correction. Generated
+checks, syntax, and whitespace pass. On Node 18.20.8 and 24.18.0, 61/62 tests
+pass before source stamping; the sole pending check is archive equality
+against this source commit. No npm publication, merge, or deploy ran.
+
+## 2026-09-18 — Stamp the 4.1.1 install manifest
+
+The 9,400-byte manifest pins source/archive commit
+`fc3192fc1245ceabac0d17c936bdc215d287f7db` and has SHA-256
+`79802ff46dde9bf1af9fa3c069825268865624ff6c8418ea9f47872e981a6b4b`.
+All 62 tests pass on Node 18.20.8 and 24.18.0, including immutable source
+equality, service-only feedback, and package consistency. Generated checks
+pass and prior archives are untouched. No release is performed here.
+
+## 2026-09-18 — Soften the feedback confirmation wording
+
+Plugin 4.1.2 changes the shared tool description to "no user confirmation is
+needed" and syncs skill `3a6cd8662a3b` from mirror `f9aeec2e`. The feedback
+contract, privacy guidance, and consent behavior are unchanged. New archives
+preserve all earlier immutable release bytes.
+
+The description assertions failed before the wording change. Generated and
+whitespace checks pass. On Node 18.20.8 and 24.18.0, 61/62 tests pass before
+source stamping; only immutable archive equality awaits this commit. No
+publication or deployment is performed.
+
+## 2026-09-18 — Stamp the 4.1.2 install manifest
+
+Pin source/archive commit `7c3efabde8086cbc99b955945000b77775693bf7` in the
+9,400-byte manifest (SHA-256
+`440109d11d6ce9d27040ddae8887599eebdac959c89595b8d86d92f55075ba7c`).
+All 62 tests pass on Node 18.20.8 and 24.18.0, along with generated checks.
+Prior artifacts remain unchanged; no package publication ran.
