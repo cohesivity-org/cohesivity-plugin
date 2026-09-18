@@ -356,3 +356,11 @@ The description assertions failed before the wording change. Generated and
 whitespace checks pass. On Node 18.20.8 and 24.18.0, 61/62 tests pass before
 source stamping; only immutable archive equality awaits this commit. No
 publication or deployment is performed.
+
+## 2026-09-18 — Stamp the 4.1.2 install manifest
+
+Pin source/archive commit `7c3efabde8086cbc99b955945000b77775693bf7` in the
+9,400-byte manifest (SHA-256
+`440109d11d6ce9d27040ddae8887599eebdac959c89595b8d86d92f55075ba7c`).
+All 62 tests pass on Node 18.20.8 and 24.18.0, along with generated checks.
+Prior artifacts remain unchanged; no package publication ran.
