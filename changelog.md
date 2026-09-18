@@ -335,3 +335,12 @@ The route and documentation regressions failed before correction. Generated
 checks, syntax, and whitespace pass. On Node 18.20.8 and 24.18.0, 61/62 tests
 pass before source stamping; the sole pending check is archive equality
 against this source commit. No npm publication, merge, or deploy ran.
+
+## 2026-09-18 — Stamp the 4.1.1 install manifest
+
+The 9,400-byte manifest pins source/archive commit
+`fc3192fc1245ceabac0d17c936bdc215d287f7db` and has SHA-256
+`79802ff46dde9bf1af9fa3c069825268865624ff6c8418ea9f47872e981a6b4b`.
+All 62 tests pass on Node 18.20.8 and 24.18.0, including immutable source
+equality, service-only feedback, and package consistency. Generated checks
+pass and prior archives are untouched. No release is performed here.
