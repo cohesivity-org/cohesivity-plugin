@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.0.3");
+  assert.equal(VERSION, "4.1.0");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "bf7cd4e14840c309a5db7fa17dc54623d629cd59");
-  assert.equal(SKILL_VERSION, "ac6c3a29928f");
-  assert.equal(canonical.length, 20663);
+  assert.equal(SKILL_SOURCE_COMMIT, "9ff9e4e527f94c21c97f5fdf1c6613f093fe5a57");
+  assert.equal(SKILL_VERSION, "3042cb861101");
+  assert.equal(canonical.length, 21905);
   assert.equal(
     SKILL_SHA256,
-    "be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e",
+    "27e5848dd2b521230a83fcc9fb3f809c15cf36262d90653cb919a47c937c4712",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -191,9 +191,9 @@ test("canonical skill is pinned and every portable package copy is byte-identica
   }
 });
 
-test("every skill documents exactly the four supported MCP tools and fails closed", async () => {
+test("every skill documents exactly the five supported MCP tools and fails closed", async () => {
   const response = await handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
-  const names = ["create_tenant", "claim_tenant", "tenant_status", "provision_resource"];
+  const names = ["create_tenant", "claim_tenant", "tenant_status", "provision_resource", "give_feedback"];
   assert.deepEqual(response.result.tools.map((tool) => tool.name), names);
   for (const root of [
     ".",
@@ -208,10 +208,12 @@ test("every skill documents exactly the four supported MCP tools and fails close
     assert.ok(operations, `${root} is missing the supported operations boundary`);
     assert.deepEqual([...operations.matchAll(/^- `([^`]+)`: /gm)].map((match) => match[1]), names);
     assert.match(operations, /`tenant_status` is read-only/);
-    assert.match(operations, /Every mutation still requires `confirmed: true`/);
-    assert.match(operations, /deployment, billing, credential rotation, destruction, and feedback submission, are not covered by these tools/);
+    assert.match(operations, /`create_tenant`, `claim_tenant`, and `provision_resource` still require `confirmed: true`/);
+    assert.match(operations, /`give_feedback` is the exception to mutation confirmation/);
+    assert.match(operations, /Exclude personal information and secrets/);
+    assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.1/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.3/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -419,7 +421,7 @@ test("create_tenant runs the fixed quickstart and returns only project metadata"
   }
 });
 
-test("local MCP mutations fail before network or filesystem writes without explicit confirmation", async () => {
+test("local MCP creation, claim and provisioning fail before network or filesystem writes without explicit confirmation", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-confirmation-"));
   let fetches = 0;
   const fetch = async () => {
@@ -667,13 +669,14 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
       "claim_tenant",
       "tenant_status",
       "provision_resource",
+      "give_feedback",
     ],
   );
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object", `${tool.name} must declare an object input schema`);
     assert.equal(tool.inputSchema.additionalProperties ?? false, false);
     assert.doesNotMatch(tool.name, /shell|exec|request|fetch|proxy/i);
-    if (tool.name === "tenant_status") {
+    if (tool.name === "tenant_status" || tool.name === "give_feedback") {
       assert.equal(tool.inputSchema.properties.confirmed, undefined);
       assert.equal(tool._meta, undefined);
     } else {

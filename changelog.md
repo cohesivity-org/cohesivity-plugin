@@ -284,3 +284,25 @@ SERVER_VERSION bumps to 4.0.3. Skill pins updated to source commit `bf7cd4e`
 and SHA-256 `be4adbeb2df3eea431f59ef59a7da4bc598e97fbf9f534ed58fda80dc4bd580e`.
 v4.0.3 archives and install manifest generated from plugin commit `cb38404`.
 Prior versioned archives remain unchanged.
+
+## 2026-09-18 — Add the give_feedback tool
+
+Local MCP 4.1.0 adds `give_feedback` using the existing authenticated feedback
+endpoint. It accepts a project root and nonempty feedback text, does not ask
+for confirmation, and instructs agents to exclude personal information and
+secrets. Only trimmed feedback is sent; no files, prompts, or extra context are
+attached. Successful submissions return only `{success:true}`. Failed requests
+return a fixed error and are never retried automatically. Creation, claim,
+and provisioning approval checks remain intact.
+
+Sync skill `3042cb861101` from mirror `9ff9e4e5`, regenerate all client wrappers,
+and build new 4.1.0 archives. The canonical guidance documents the hosted
+`mcp:feedback:write` permission and initializer 0.8.3 fallback. Prior immutable
+artifacts are unchanged; publish the initializer before merging this release.
+
+Seven feedback regressions failed before implementation. On Node 18.20.8 and
+24.18.0, 61 of 62 tests pass before source stamping; only the immutable archive
+comparison awaits this source commit. Generated checks, syntax, and whitespace
+checks pass. The provisional install manifest is excluded and will be stamped
+and fully verified in the next commit. No real feedback, npm publication, or
+backend deployment was performed.
