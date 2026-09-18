@@ -306,3 +306,13 @@ comparison awaits this source commit. Generated checks, syntax, and whitespace
 checks pass. The provisional install manifest is excluded and will be stamped
 and fully verified in the next commit. No real feedback, npm publication, or
 backend deployment was performed.
+
+## 2026-09-18 — Stamp the 4.1.0 install manifest
+
+The install manifest pins immutable source/archive commit
+`14c8f6bb1bef1fbcdbdbfcd16be43778d3cf61d2`. Its 9,400 bytes have SHA-256
+`c3c435061a392af1c39f222eaf895ea48a42a5fa4652d343d7f6df1ec400553f`.
+All 62 tests now pass on Node 18.20.8 and 24.18.0, including archive equality,
+secret scanning, five-tool stdio discovery in every package, and feedback
+privacy/approval checks. Generated checks and whitespace checks pass. Older
+artifacts remain unchanged; this candidate is not an npm or backend release.
