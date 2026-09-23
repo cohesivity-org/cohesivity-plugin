@@ -364,3 +364,22 @@ Pin source/archive commit `7c3efabde8086cbc99b955945000b77775693bf7` in the
 `440109d11d6ce9d27040ddae8887599eebdac959c89595b8d86d92f55075ba7c`).
 All 62 tests pass on Node 18.20.8 and 24.18.0, along with generated checks.
 Prior artifacts remain unchanged; no package publication ran.
+
+## 2026-09-23 — Guide cold agents through the local MCP call order
+
+Plugin 4.1.3 closes COH-293 for the local MCP. During Dexto integration
+testing, an agent connecting the MCP without the Cohesivity skill could see
+the tools but not the order to call them in, and the shared `project_root`
+description told `create_tenant` the `.cohesivity` file already existed.
+`create_tenant` now says what Cohesivity is and that it comes first in a
+project with no `.cohesivity`; `provision_resource` says it needs an existing
+tenant; `create_tenant` gets its own `project_root` description; and
+`initialize` returns an `instructions` field with the call order. The skill,
+schemas, and consent gates are unchanged.
+
+In headless Claude Code runs with only this MCP connected, Sonnet opened with
+`tenant_status` on a tenantless project in 2 of 4 runs before the change and
+all 8 Haiku and Sonnet runs called `create_tenant` first after it. The new
+guidance assertion failed before the change. Generated checks pass. With a
+non-symlinked `TMPDIR`, 62/63 tests pass before source stamping; only archive
+equality against this source commit is pending. No publication or deploy runs.

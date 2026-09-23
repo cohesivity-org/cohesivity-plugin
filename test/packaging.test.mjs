@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.1.2");
+  assert.equal(VERSION, "4.1.3");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -785,8 +785,8 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.8\.3/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.2\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.2 and initializer\n0\.8\.3/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.3\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.3 and initializer\n0\.8\.3/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

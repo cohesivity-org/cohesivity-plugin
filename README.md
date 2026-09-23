@@ -149,7 +149,7 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.1.2 and initializer
+The coordinated candidates are hosted/local plugin 4.1.3 and initializer
 0.8.3. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
@@ -265,7 +265,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.1.2/`; existing
+Current versioned installer inputs live under `artifacts/v4.1.3/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
