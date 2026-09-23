@@ -391,3 +391,15 @@ Pin source/archive commit `85be45837d1f902c40c591e96158af5313e5e543` in the
 `83ef6fcf2f04223658d86332be9349789d71ff4b9645eaed55801f70e274d573`).
 All 63 tests pass with a non-symlinked `TMPDIR`, along with generated checks.
 Only the manifest changed in this step; prior artifacts remain unchanged.
+
+## 2026-09-23 — Sync the COH-284 skill into plugin 4.1.3
+
+The canonical skill moves from mirror `f9aeec2e` to `ce021d9d` (metadata
+version `fef5cc6c4e30`, 23,408 bytes), which gates billing talk behind real
+triggers and stops post-claim upgrade pitches. `@cohesivity/init` 0.8.4
+already installs that skill, but the plugin and quickstart still shipped the
+older one, so the shared installer release check failed. The 4.1.3 archives
+are rebuilt before any pin references them; earlier releases are untouched.
+
+Generated checks pass. With a non-symlinked `TMPDIR`, 62/63 tests pass before
+source stamping; only archive equality against this source commit is pending.
