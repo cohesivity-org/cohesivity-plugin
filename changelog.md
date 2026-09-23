@@ -403,3 +403,11 @@ are rebuilt before any pin references them; earlier releases are untouched.
 
 Generated checks pass. With a non-symlinked `TMPDIR`, 62/63 tests pass before
 source stamping; only archive equality against this source commit is pending.
+
+## 2026-09-23 — Re-stamp the 4.1.3 install manifest
+
+Pin source/archive commit `516c325024096058f18ec42eabbd2094404a44fc` in the
+9,400-byte manifest (SHA-256
+`32ec98692955b8a6f12be17031c758bf51726bb7952fcf7d1f1737e7ac5a474e`). This supersedes the earlier 4.1.3 stamp, which no installer
+referenced. All 63 tests pass with a non-symlinked `TMPDIR`, along with
+generated checks. Only the manifest changed in this step.
