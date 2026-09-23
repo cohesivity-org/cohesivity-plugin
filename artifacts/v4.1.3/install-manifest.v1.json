@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "package": "cohesivity",
+  "version": "4.1.3",
+  "source": {
+    "repository": "https://github.com/cohesivity-org/cohesivity-plugin",
+    "commit": "516c325024096058f18ec42eabbd2094404a44fc",
+    "immutable_base_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3"
+  },
+  "packages": [
+    {
+      "client": "portable",
+      "archive": "cohesivity-portable-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-portable-4.1.3.tar.gz",
+      "size": 23066,
+      "sha256": "ac3f56c1559af1da5f5ba722c3a4b07ef95b732d3d703f487f11399889f348c2",
+      "tree_sha256": "922a51f04d4677f31ecb515e8c7fd3678063133545d6a70fcae115babfdb180e",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp.json",
+          "size": 361,
+          "sha256": "32b8ff0af87d23f30a4183b73db081000d1a4e746343941a36bba95eda0e41ad",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "plugin.json",
+          "size": 602,
+          "sha256": "661bc76d20e99ff594e3842f8890a6453338a13d0e3c41bc14b1f0d2b1e82e72",
+          "mode": "0644"
+        },
+        {
+          "path": "skills/cohesivity/SKILL.md",
+          "size": 23408,
+          "sha256": "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+          "mode": "0644"
+        }
+      ]
+    },
+    {
+      "client": "claude",
+      "archive": "cohesivity-claude-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-claude-4.1.3.tar.gz",
+      "size": 23410,
+      "sha256": "94261465606e92c8f9c644e93e6023f7b6302ac25c3e505ae5cc825a429ab07c",
+      "tree_sha256": "7b3ff61171201c7e39837a3d5783e6bad4b4fac62ee0b2bc07f5182740dd2854",
+      "files": [
+        {
+          "path": ".claude-plugin/plugin.json",
+          "size": 583,
+          "sha256": "0f6925232deef0c3ded23f246c040a2c6b1fae0fe7d32ebd8cc95cdb93e85b4c",
+          "mode": "0644"
+        },
+        {
+          "path": ".mcp.json",
+          "size": 285,
+          "sha256": "286a5324823e30a845c89d25e99f02fcd977b85ef55006b97e164b26673804d2",
+          "mode": "0644"
+        },
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "skills/cohesivity/SKILL.md",
+          "size": 24638,
+          "sha256": "604dfd9e243a6e8fa909e17b500196d9b8c0e95be4c779049d3712660a128a0b",
+          "mode": "0644"
+        }
+      ]
+    },
+    {
+      "client": "gemini",
+      "archive": "cohesivity-gemini-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-gemini-4.1.3.tar.gz",
+      "size": 22854,
+      "sha256": "78dfb0738eab3630520f42dab056698c0b09dd91c95fd633645711e40d161304",
+      "tree_sha256": "bda10f6dde457af00acbea1f2cbdf67e727293e1abc553ded2e141eea388a565",
+      "files": [
+        {
+          "path": "gemini-extension.json",
+          "size": 476,
+          "sha256": "ee019c0eb45c4ea41790ab72ffe99f4c4ca0e0a642c4b9a3f94b49f3274e65ae",
+          "mode": "0644"
+        },
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "skills/cohesivity/SKILL.md",
+          "size": 23408,
+          "sha256": "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+          "mode": "0644"
+        }
+      ]
+    },
+    {
+      "client": "antigravity",
+      "archive": "cohesivity-antigravity-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-antigravity-4.1.3.tar.gz",
+      "size": 22871,
+      "sha256": "cb9f5c1370d05b7f5ed3fe0a1b6852f38a563bb96930568dab9761bb1cf86895",
+      "tree_sha256": "f01197b249f43df9ffc348a1366071140c9e56951b09b18e292a62d30ba2bdc0",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp_config.json",
+          "size": 280,
+          "sha256": "55358b5b2cf633648773af68274a8d1a011c4a8447d9844beca8617576c71466",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "plugin.json",
+          "size": 161,
+          "sha256": "981ce0f798ed4d1d8027812dd6300f1ff661ce027e81b04a972942c35f9ce29f",
+          "mode": "0644"
+        },
+        {
+          "path": "skills/cohesivity/SKILL.md",
+          "size": 23408,
+          "sha256": "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+          "mode": "0644"
+        }
+      ]
+    },
+    {
+      "client": "openai",
+      "archive": "cohesivity-openai-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-openai-4.1.3.tar.gz",
+      "size": 22999,
+      "sha256": "e347187105ce801140c2a92e832c8d96fd9a34d2a00176d66da64057f6080d09",
+      "tree_sha256": "1cc6b0a80c4bfb996b4ad10d83224ef3c69d85c3482af0b4a907baeb8a08c566",
+      "files": [
+        {
+          "path": ".codex-plugin/plugin.json",
+          "size": 583,
+          "sha256": "0f6925232deef0c3ded23f246c040a2c6b1fae0fe7d32ebd8cc95cdb93e85b4c",
+          "mode": "0644"
+        },
+        {
+          "path": ".mcp.json",
+          "size": 237,
+          "sha256": "863ff76135a3f7ef15e49db326a6e4a7ca676e8574c525ef55a7402cb432989c",
+          "mode": "0644"
+        },
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "skills/cohesivity/SKILL.md",
+          "size": 23408,
+          "sha256": "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+          "mode": "0644"
+        }
+      ]
+    },
+    {
+      "client": "codex",
+      "archive": "cohesivity-codex-4.1.3.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/516c325024096058f18ec42eabbd2094404a44fc/artifacts/v4.1.3/cohesivity-codex-4.1.3.tar.gz",
+      "size": 23165,
+      "sha256": "e04a2e719fdb95afa56e78a755488619239cbb166ed7e9320e670c18fa657f51",
+      "tree_sha256": "f36466716fb6facf9a340041d7e8fbb516795228626b2f90e313382a8bdb93f5",
+      "files": [
+        {
+          "path": ".agents/plugins/marketplace.json",
+          "size": 420,
+          "sha256": "32973571e481633d3028eb216b044b36317b26797066211a28a02387bd7ab651",
+          "mode": "0644"
+        },
+        {
+          "path": "plugins/cohesivity/.codex-plugin/plugin.json",
+          "size": 583,
+          "sha256": "0f6925232deef0c3ded23f246c040a2c6b1fae0fe7d32ebd8cc95cdb93e85b4c",
+          "mode": "0644"
+        },
+        {
+          "path": "plugins/cohesivity/.mcp.json",
+          "size": 237,
+          "sha256": "863ff76135a3f7ef15e49db326a6e4a7ca676e8574c525ef55a7402cb432989c",
+          "mode": "0644"
+        },
+        {
+          "path": "plugins/cohesivity/LICENSE",
+          "size": 1080,
+          "sha256": "b72b4f2905d726d4a45e530e82ad58f70b7de337c8e67276022196b3f82deae3",
+          "mode": "0644"
+        },
+        {
+          "path": "plugins/cohesivity/mcp/project-bootstrap.mjs",
+          "size": 52992,
+          "sha256": "cb27906d77038eaf7da5b86c72a4213c767912a276cec7536cd0d00ef377ebf0",
+          "mode": "0644"
+        },
+        {
+          "path": "plugins/cohesivity/skills/cohesivity/SKILL.md",
+          "size": 23408,
+          "sha256": "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+          "mode": "0644"
+        }
+      ]
+    }
+  ]
+}

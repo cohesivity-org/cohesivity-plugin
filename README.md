@@ -149,7 +149,7 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.1.2 and initializer
+The coordinated candidates are hosted/local plugin 4.1.3 and initializer
 0.8.3. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
@@ -243,11 +243,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@f9aeec2e16dd5855f03d6a80e6a25c276052f93f`:
+`cohesivity-org/cohesivity-skill@ce021d9d5cf6dadd4dce30d71c2d880b9c0f4c48`:
 
-- skill metadata version: `3a6cd8662a3b`
-- size: 22,137 bytes
-- SHA-256: `848be46405531411919b149b3fbd20b8753f1a05ca91140d8c724395b65113c0`
+- skill metadata version: `fef5cc6c4e30`
+- size: 23,408 bytes
+- SHA-256: `c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -265,7 +265,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.1.2/`; existing
+Current versioned installer inputs live under `artifacts/v4.1.3/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

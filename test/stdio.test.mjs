@@ -67,3 +67,16 @@ for (const packageRoot of packageRoots) {
     }
   });
 }
+
+test("initialize and tool descriptions guide a cold agent through the call order", async () => {
+  const { handleRequest, TOOLS } = await import("../mcp/project-bootstrap.mjs");
+  const init = await handleRequest({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
+  assert.match(init.result.instructions, /create_tenant first/);
+  assert.match(init.result.instructions, /provision_resource/);
+
+  const byName = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
+  assert.match(byName.create_tenant.description, /first/i);
+  assert.match(byName.create_tenant.inputSchema.properties.project_root.description, /writes? \.cohesivity/i);
+  assert.doesNotMatch(byName.create_tenant.inputSchema.properties.project_root.description, /owns \.cohesivity/);
+  assert.match(byName.provision_resource.description, /create_tenant/);
+});

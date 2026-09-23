@@ -49,7 +49,13 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "4.1.2";
+export const SERVER_VERSION = "4.1.3";
+const SERVER_INSTRUCTIONS =
+  "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
+  "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
+  "Then call provision_resource for what the app needs, after fetching that offering's live documentation. " +
+  "tenant_status reads the current tenant, claim_tenant hands an ephemeral tenant to the user's account, and give_feedback reports problems. " +
+  "create_tenant, provision_resource, and claim_tenant change real state, so pass confirmed: true only when the user explicitly approved that action.";
 const MAX_PROJECT_ROOT_LENGTH = 4096;
 const MAX_CREDENTIAL_FILE_BYTES = 128 * 1024;
 const MAX_GITIGNORE_BYTES = 1024 * 1024;
@@ -139,7 +145,12 @@ const projectRootProperty = {
   type: "string",
   minLength: 1,
   maxLength: MAX_PROJECT_ROOT_LENGTH,
-  description: "Absolute path to the existing project root that owns .cohesivity.",
+  description: "Absolute path to the project root holding the .cohesivity file that create_tenant wrote.",
+};
+
+const createTenantProjectRootProperty = {
+  ...projectRootProperty,
+  description: "Absolute path to an existing project directory. create_tenant writes .cohesivity here, or reuses the one already there.",
 };
 
 const confirmedProperty = {
@@ -288,10 +299,10 @@ export const TOOLS = Object.freeze([
     name: "create_tenant",
     title: "Create or reuse a Cohesivity project tenant",
     description:
-      "Runs the full Cohesivity quickstart in the supplied project: creates or reuses credentials, installs detected client integrations and guidance, and returns only non-secret metadata. Optional local CLI login creates an account-owned tenant without claiming; otherwise creates an ephemeral tenant. Requires explicit approval for all quickstart effects.",
+      "Cohesivity gives an app managed backend resources and third-party APIs (Postgres, Redis, object storage, social login, realtime, AI and data APIs) through one tenant with one set of credentials. Call this first in any project that has no .cohesivity file; every other Cohesivity tool needs the tenant it creates. Runs the full Cohesivity quickstart in the supplied project: creates or reuses credentials, installs detected client integrations and guidance, and returns only non-secret metadata. Optional local CLI login creates an account-owned tenant without claiming; otherwise creates an ephemeral tenant. Requires explicit approval for all quickstart effects.",
     inputSchema: {
       type: "object",
-      properties: { project_root: projectRootProperty, confirmed: confirmedProperty },
+      properties: { project_root: createTenantProjectRootProperty, confirmed: confirmedProperty },
       required: ["project_root", "confirmed"],
       additionalProperties: false,
     },
@@ -355,7 +366,7 @@ export const TOOLS = Object.freeze([
     name: "provision_resource",
     title: "Provision Cohesivity resources",
     description:
-      "Provisions one resource with resource/configuration, or several with resources/configurations. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
+      "Provisions one resource with resource/configuration, or several with resources/configurations. Requires an existing tenant: if project_root has no .cohesivity file, call create_tenant first. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
     inputSchema: provisionInputSchema,
     _meta: requiresUserInteraction,
     outputSchema: {
@@ -1303,6 +1314,7 @@ export async function handleRequest(request, dependencies = {}) {
         protocolVersion: "2025-06-18",
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+        instructions: SERVER_INSTRUCTIONS,
       },
     };
   }
