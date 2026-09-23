@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.1.3");
+  assert.equal(VERSION, "4.1.4");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "ce021d9d5cf6dadd4dce30d71c2d880b9c0f4c48");
-  assert.equal(SKILL_VERSION, "fef5cc6c4e30");
+  assert.equal(SKILL_SOURCE_COMMIT, "b4ce7217b942ea69f2dacde0d464c0a628857bee");
+  assert.equal(SKILL_VERSION, "2dd574dfb6fc");
   assert.equal(canonical.length, 23408);
   assert.equal(
     SKILL_SHA256,
-    "c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e",
+    "a3bf2ae8379375a4c247acf09f5d78e1c2ebcf6b325d22f8ffbec562ccff6460",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -213,7 +213,7 @@ test("every skill documents exactly the five supported MCP tools and fails close
     assert.match(operations, /Exclude personal information and secrets/);
     assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.3/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.6/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -784,9 +784,9 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.8\.3/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.3\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.3 and initializer\n0\.8\.3/);
+  assert.match(readme, /@cohesivity\/init@0\.8\.6/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.4\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.4 and initializer\n0\.8\.6/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

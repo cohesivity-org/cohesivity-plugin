@@ -56,7 +56,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.8.3` package instead of mutable
+pins the exact `@cohesivity/init@0.8.6` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -149,8 +149,8 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.1.3 and initializer
-0.8.3. This guidance does not assert publication or deployment.
+The coordinated candidates are hosted/local plugin 4.1.4 and initializer
+0.8.6. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
 
@@ -243,11 +243,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@ce021d9d5cf6dadd4dce30d71c2d880b9c0f4c48`:
+`cohesivity-org/cohesivity-skill@b4ce7217b942ea69f2dacde0d464c0a628857bee`:
 
-- skill metadata version: `fef5cc6c4e30`
+- skill metadata version: `2dd574dfb6fc`
 - size: 23,408 bytes
-- SHA-256: `c5903bc513c4e70d92a13ef7cb3ddd1a46cb7fb2692d06405bb1d6f39343824e`
+- SHA-256: `a3bf2ae8379375a4c247acf09f5d78e1c2ebcf6b325d22f8ffbec562ccff6460`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -265,7 +265,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.1.3/`; existing
+Current versioned installer inputs live under `artifacts/v4.1.4/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
