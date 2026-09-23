@@ -383,3 +383,11 @@ all 8 Haiku and Sonnet runs called `create_tenant` first after it. The new
 guidance assertion failed before the change. Generated checks pass. With a
 non-symlinked `TMPDIR`, 62/63 tests pass before source stamping; only archive
 equality against this source commit is pending. No publication or deploy runs.
+
+## 2026-09-23 — Stamp the 4.1.3 install manifest
+
+Pin source/archive commit `85be45837d1f902c40c591e96158af5313e5e543` in the
+9400-byte manifest (SHA-256
+`83ef6fcf2f04223658d86332be9349789d71ff4b9645eaed55801f70e274d573`).
+All 63 tests pass with a non-symlinked `TMPDIR`, along with generated checks.
+Only the manifest changed in this step; prior artifacts remain unchanged.
