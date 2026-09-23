@@ -411,3 +411,21 @@ Pin source/archive commit `516c325024096058f18ec42eabbd2094404a44fc` in the
 `32ec98692955b8a6f12be17031c758bf51726bb7952fcf7d1f1737e7ac5a474e`). This supersedes the earlier 4.1.3 stamp, which no installer
 referenced. All 63 tests pass with a non-symlinked `TMPDIR`, along with
 generated checks. Only the manifest changed in this step.
+
+## 2026-09-23 — Start the local MCP through symlinked paths; point the fallback at init 0.8.6
+
+Plugin 4.1.4. The server decided whether it was launched directly by comparing
+the unresolved `argv[1]` path with the resolved module path, so launching it
+through any symlinked directory (macOS `/tmp` → `/private/tmp`, a symlinked
+plugin root) made it exit silently and clients showed the MCP as
+disconnected. It now compares real paths and treats an unresolvable path as
+not-main. The npm wrapper never hit this because it calls `runServer`
+directly. A new test launches the server through a symlinked plugin root; it
+failed before the fix with empty output.
+
+The canonical skill syncs mirror `b4ce7217` (`2dd574dfb6fc`), which points the
+no-MCP fallback at `@cohesivity/init@0.8.6` and names plugin 4.1.4 (COH-294).
+README and packaging expectations follow.
+
+Generated checks pass. With a non-symlinked `TMPDIR`, 63/64 tests pass before
+source stamping; only archive equality against this source commit is pending.

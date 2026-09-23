@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,4 +79,24 @@ test("initialize and tool descriptions guide a cold agent through the call order
   assert.match(byName.create_tenant.inputSchema.properties.project_root.description, /writes? \.cohesivity/i);
   assert.doesNotMatch(byName.create_tenant.inputSchema.properties.project_root.description, /owns \.cohesivity/);
   assert.match(byName.provision_resource.description, /create_tenant/);
+});
+
+test("server starts when launched through a symlinked path", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "cohesivity-symlink-"));
+  try {
+    const linked = join(tmp, "plugin");
+    symlinkSync(fileURLToPath(new URL("..", import.meta.url)), linked, "dir");
+    const result = spawnSync(process.execPath, [join(linked, "mcp", "project-bootstrap.mjs")], {
+      cwd: tmp,
+      env: {},
+      input: `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} })}\n`,
+      encoding: "utf8",
+      timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const reply = JSON.parse(result.stdout.trim().split("\n")[0] ?? "null");
+    assert.equal(reply?.result?.serverInfo?.name, "cohesivity-project-bootstrap");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 });
