@@ -429,3 +429,11 @@ README and packaging expectations follow.
 
 Generated checks pass. With a non-symlinked `TMPDIR`, 63/64 tests pass before
 source stamping; only archive equality against this source commit is pending.
+
+## 2026-09-23 — Stamp the 4.1.4 install manifest
+
+Pin source/archive commit `3b75fe1a158402b117795f35ed1e7339cdab1a3d` in the
+9400-byte manifest (SHA-256
+`482f6de00ede8d510a7b16052c7519d896efc74cf5f939e4d43fc64382374b60`).
+All 64 tests pass with a non-symlinked `TMPDIR`, along with generated checks.
+Only the manifest changed in this step; prior artifacts remain unchanged.
