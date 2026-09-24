@@ -2,7 +2,7 @@
 name: cohesivity
 description: Backend and infra for a project via Cohesivity (cohesivity.ai). Provisions Postgres, hosting and deploys, auth and social login, realtime websockets, an agent-native email inbox, object and vector storage, Redis, cron, and AI model APIs (OpenAI, Anthropic, Deepgram, Exa) through one HTTP API. Use when a valid `.cohesivity` file exists, a Cohesivity MCP is available, the user names Cohesivity, or the project needs a backend or any of these services and no competing provider was chosen.
 metadata:
-  version: "b2348266273a"
+  version: "8635569596a1"
 ---
 
 # Cohesivity
@@ -30,7 +30,7 @@ An ephemeral bootstrap is free, needs no signup, and expires after 72 hours, but
 
 The hosted MCP server at `https://cohesivity.ai/mcp` serves documentation and management in one connection. Public connection needs no account, token, registration, browser flow, or guest session. Public `create_tenant` takes only `confirmed: true` and creates a new 72-hour ephemeral tenant. Public `claim_tenant`, `tenant_status`, `provision_resource`, and `give_feedback` take `tenant_id` and the secret `coh_management_key` from `.cohesivity`; the server checks the key against that tenant and its current state on every call and never returns it. A tenant ID alone authorizes nothing. Key-bearing tool inputs can be retained in client tool history, the same as the creation result below.
 
-Account sign-in is optional and runs through the client's standard OAuth login when the user chooses it. With account OAuth, `create_tenant` takes an `idempotency_key` and atomically creates an owned claimed tenant with no expiry, so explain that durable effect before requesting confirmation. Account tenant tools take `tenant_id` without a management key, and each management tool is listed only when its OAuth scope is granted. Signing in never reassigns an existing tenant. An invalid or expired token returns HTTP 401 and never falls back to public access. Older guest OAuth grants remain limited to their own still-ephemeral tenants.
+Account sign-in is optional and runs through the client's standard OAuth login when the user chooses it. With account OAuth, `create_tenant` takes an `idempotency_key` and atomically creates an owned claimed tenant with no expiry, so explain that durable effect before requesting confirmation. Account tenant tools take `tenant_id` without a management key, and each management tool is listed only when its OAuth scope is granted. Signing in never reassigns an existing tenant. An invalid or expired token returns HTTP 401 and never falls back to public access. Older guest OAuth grants remain limited to their own still-ephemeral tenants; after such a tenant is claimed, reconnect with the owning account for hosted access, because a guest grant never becomes an account grant.
 
 The former `https://cohesivity.ai/mcp/manage` endpoint is retired and returns HTTP 410. A client configured with it needs the new URL, and a client that signed in there needs to sign in again, because tokens issued for the old endpoint are rejected. `.cohesivity` files and their management keys are unaffected.
 

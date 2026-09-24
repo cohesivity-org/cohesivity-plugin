@@ -472,3 +472,16 @@ Pin source/archive commit `a18db9c596ff74bda4ea9e64077e49e090ba82c2` in the
 `11d44d171299091b061e35b82dcb78e3b1d4ba2bf44ea520239e9862e0e21e58`).
 All 68 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-24 — Re-cut 5.0.0 on the corrected skill mirror
+
+The skill mirror `8703edc6` (`b2348266273a`) pinned by the first 5.0.0 cut
+dropped the legacy guest reconnect rule. Mirror `fb534f60` (`8635569596a1`,
+25,001 bytes) restores it, so the canonical skill, every packaged copy, and the
+v5.0.0 archives are rebuilt from it. The earlier 5.0.0 stamp (`2da59bc6`) was
+never referenced by a released installer; its commits stay unchanged.
+
+All 67 other tests pass before source stamping. The archive-equality test is
+excluded at this step because it compares against the stamped source commit;
+its failure diff on two differing archive buffers exhausted memory rather than
+failing cleanly, which is a pre-existing test weakness and is not changed here.

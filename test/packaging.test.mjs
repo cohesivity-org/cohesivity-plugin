@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "8703edc648453b6fa45300e380510dda77452071");
-  assert.equal(SKILL_VERSION, "b2348266273a");
-  assert.equal(canonical.length, 24862);
+  assert.equal(SKILL_SOURCE_COMMIT, "fb534f60e54c62971a52eb1aaa3bdd8deb651023");
+  assert.equal(SKILL_VERSION, "8635569596a1");
+  assert.equal(canonical.length, 25001);
   assert.equal(
     SKILL_SHA256,
-    "0114e33f413d69ec8d35953f517a66c2bfb71539106d139c2568a3aa59613ae2",
+    "7e6a2ba324a92bb6a98c700f79ff66fcb255dc8001e2ad61911ec26768f14f60",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
