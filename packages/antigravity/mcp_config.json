@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "cohesivity": {
-      "serverUrl": "https://cohesivity.ai/mcp/manage"
+      "serverUrl": "https://cohesivity.ai/mcp"
     },
     "cohesivity-local": {
       "command": "node",

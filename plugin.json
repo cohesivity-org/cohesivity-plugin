@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cohesivity",
-  "version": "4.1.4",
-  "description": "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.",
+  "version": "5.0.0",
+  "description": "Cohesivity backend infrastructure skill with local project bootstrap and a public remote MCP for documentation and management, with optional account OAuth.",
   "author": {
     "name": "Cohesivity",
     "email": "smj@cohesivity.ai",

@@ -437,3 +437,30 @@ Pin source/archive commit `3b75fe1a158402b117795f35ed1e7339cdab1a3d` in the
 `482f6de00ede8d510a7b16052c7519d896efc74cf5f939e4d43fc64382374b60`).
 All 64 tests pass with a non-symlinked `TMPDIR`, along with generated checks.
 Only the manifest changed in this step; prior artifacts remain unchanged.
+
+## 2026-09-24 — Point every remote wrapper at the unified /mcp server
+
+Plugin 5.0.0. Cohesivity's two hosted MCP servers (read-only docs at `/mcp`,
+public management at `/mcp/manage`) merge into one server at
+`https://cohesivity.ai/mcp`, and `/mcp/manage` now returns HTTP 410 with no
+alias or redirect (core change, Refs COH-296). Every generated remote wrapper
+(`mcp.json`, Claude, Codex/OpenAI, Gemini, Antigravity) now uses `/mcp`; the
+packaging tests invert the old rule and reject `/mcp/manage`. The major version
+marks the breaking endpoint and OAuth-resource move for installed clients.
+
+The local server's optional CLI sign-in now targets the `/mcp` OAuth resource,
+refuses token responses for any other resource, and records the resource in
+`mcp-auth.json`. A saved sign-in without that resource (older logins, all bound
+to `/mcp/manage`) fails closed before any network request, with a message to run
+`logout` and then `login`; it never refreshes, falls back to guest, or is
+rewritten as `/mcp`. `logout` still revokes it. Existing projects with a valid
+`.cohesivity` never load saved sign-in, so they keep working. The five local
+tools and their filesystem safeguards are unchanged.
+
+The canonical skill syncs mirror `8703edc6` (`b2348266273a`, 24,862 bytes),
+which the user approved: it describes the public hosted server, optional
+account OAuth, the retired endpoint, and the initializer 0.9.0 pin. README,
+SECURITY.md, and the package description drop the guest/OAuth Connect wording.
+
+Generated package checks pass. 67/68 tests pass before source stamping; only
+archive equality against this source commit is pending.

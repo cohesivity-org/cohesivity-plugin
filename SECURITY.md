@@ -45,16 +45,19 @@ remote MCP can use the same private contact.
   `credentials_file: { filename: ".cohesivity", content: "<exact file contents>" }`
   alongside existing metadata in `structuredContent` and the compatible text
   result. This is the sole secret-bearing MCP response exception, authorized
-  by the existing OAuth `mcp:tenants:create` scope, literal `confirmed: true`,
-  and fresh account ownership or guest-creation checks. The response may enter
-  model or client retained tool history. Other hosted tool outputs retain
+  by literal `confirmed: true` plus public creation admission checks, or by the
+  OAuth `mcp:tenants:create` scope and fresh account ownership checks. The
+  response may enter model or client retained tool history. Public follow-up
+  calls to `https://cohesivity.ai/mcp` pass the secret `coh_management_key` as
+  a tool argument, verified against the tenant and its current state; those
+  inputs may also enter client tool history. Other hosted tool outputs retain
   secret scrubbing, and local MCP output remains metadata-only.
   The calling agent must write content verbatim to the current project's
   `.cohesivity` with mode `0600`, gitignore it, and never overwrite a different
   existing tenant. Never print credentials in chat, logs, or source, or commit
   them. If the client cannot write safely, it must report that explicitly;
   the server cannot force a client filesystem write.
-- The hosted `credentials_download_url` is an optional fallback for clients
+- Only OAuth creation returns the hosted `credentials_download_url`, an optional fallback for clients
   with no writable workspace, not a prerequisite for coding clients. The URL
   is not a bearer capability. The protected browser endpoint requires the
   consent browser's guest cookie for its own still-ephemeral creation or an
@@ -81,7 +84,10 @@ remote MCP can use the same private contact.
   under the Cohesivity config directory, outside the project. New directories
   use mode 0700; existing owned directories may be readable but must not be
   group/world-writable. Symlinked state paths, shared token-file permissions,
-  invalid tokens and guest grants fail closed.
+  invalid tokens and guest grants fail closed. Saved sign-ins are bound to the
+  `https://cohesivity.ai/mcp` OAuth resource; one saved for the retired
+  `/mcp/manage` resource fails closed before any network request until
+  `logout` revokes it and `login` runs again.
   Refresh uses the stored public client; there is no fallback to guest while
   account credentials are present. Bootstrap passes auth through a temporary
   mode-0600 header file, removes it after execution, and persists a non-secret

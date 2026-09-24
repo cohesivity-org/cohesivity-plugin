@@ -56,7 +56,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.8.6` package instead of mutable
+pins the exact `@cohesivity/init@0.9.0` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -112,21 +112,36 @@ For other control-plane operations, the skill allows direct HTTP with the
 management key after explicit authorization. Feedback is the only MCP write
 that does not require per-call approval.
 
-The **remote management MCP connection** at
-`https://cohesivity.ai/mcp/manage` is different: its OAuth session belongs to
-the MCP client. Connect uses an existing browser account session automatically
-or temporary guest access otherwise. It never asks whether to sign in; sign-in
-is a separate optional action initiated by the user. The account-scoped
-grant connects directly to the Cohesivity account without tenant selection
-during consent, and can create the first tenant and manage current or future
-owned tenants. Hosted `claim_tenant`, `tenant_status`, `provision_resource`, and `give_feedback`
-each require an explicit `tenant_id` and re-check current claimed ownership or
-the guest's own still-ephemeral creation on every call. The endpoint returns an
-OAuth challenge to compatible MCP clients. No package contains a bearer token, literal auth header,
-client secret, or other credential. The remote server requires literal
-`confirmed: true` for creation, claiming, and provisioning. `give_feedback`
-requires the separate `mcp:feedback:write` OAuth scope but no per-call approval;
-existing hosted connections must reconnect to grant that permission.
+The **remote MCP server** at `https://cohesivity.ai/mcp` is one hosted
+server for documentation and management. Clients connect with only the URL:
+no account, token, registration, browser flow, or guest session. It lists six
+tools: the read-only `get_cohesivity_documentation` plus the same five
+management tools as the local server. Public `create_tenant` takes only
+`confirmed: true`, creates a new 72-hour ephemeral tenant on every call, and
+returns the exact `.cohesivity` file contents in its result for the agent to
+save with mode `0600` and gitignore. Public `claim_tenant`, `tenant_status`,
+`provision_resource`, and `give_feedback` take the `tenant_id` and
+`coh_management_key` from that file; the key is checked against the tenant and
+its current state on every call and never returned. Mutations other than
+feedback still require literal `confirmed: true`.
+
+Account sign-in is optional and belongs to the MCP client's own OAuth login.
+With a valid account token, new tenants are owned and claimed immediately,
+tenant tools take an explicit `tenant_id` without a management key, and each
+management tool is listed only when its OAuth scope is granted;
+`give_feedback` needs the `mcp:feedback:write` scope but no per-call approval.
+Signing in never reassigns an existing tenant, and an invalid token never falls
+back to public access. No package contains a bearer token, literal auth header,
+client secret, or other credential.
+
+The former `https://cohesivity.ai/mcp/manage` endpoint is retired and returns
+HTTP 410; it is not an alias. Clients configured with it must be reconfigured
+to `https://cohesivity.ai/mcp` (reinstalling this plugin does that). OAuth
+tokens issued for the old resource are rejected, so a client that signed in
+before the move must sign in again. The same applies to the optional local CLI
+sign-in: a saved sign-in for the old resource fails closed with a message to
+run `logout` and then `login`, and `logout` still revokes it. Existing
+`.cohesivity` projects keep working without sign-in.
 
 Hosted `create_tenant` returns existing metadata plus
 `credentials_file: { filename: ".cohesivity", content: "<exact .cohesivity file contents>" }`
@@ -149,8 +164,8 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 4.1.4 and initializer
-0.8.6. This guidance does not assert publication or deployment.
+The coordinated candidates are hosted/local plugin 5.0.0 and initializer
+0.9.0. This guidance does not assert publication or deployment.
 
 ## Supported package surfaces
 
@@ -193,7 +208,7 @@ Node stdio tools, and the remote MCP server, not a registered app.
 ## OAuth and owner overrides
 
 Agent Plugins 1.0 deliberately defines no portable OAuth field. Its
-`mcp.json` declares the protected URL with Streamable HTTP transport and the
+`mcp.json` declares the remote URL with Streamable HTTP transport and the
 local server with stdio transport, so OAuth discovery, browser interaction,
 and token storage belong to the client. Clients may leave the remote server
 disconnected and continue using the skill and local bootstrap flow.
@@ -203,7 +218,7 @@ its OAuth credential store. Operator MCP config wins over the bundle entry with
 the same name:
 
 ```bash
-openclaw mcp set cohesivity '{"url":"https://cohesivity.ai/mcp/manage","transport":"streamable-http","auth":"oauth"}'
+openclaw mcp set cohesivity '{"url":"https://cohesivity.ai/mcp","transport":"streamable-http","auth":"oauth"}'
 openclaw mcp login cohesivity
 ```
 
@@ -217,7 +232,7 @@ its native `transport` field is only needed to opt into legacy `sse`:
 ```yaml
 mcp_servers:
   <qualified-server-name>:
-    url: https://cohesivity.ai/mcp/manage
+    url: https://cohesivity.ai/mcp
     auth: oauth
 ```
 
@@ -243,11 +258,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@b4ce7217b942ea69f2dacde0d464c0a628857bee`:
+`cohesivity-org/cohesivity-skill@8703edc648453b6fa45300e380510dda77452071`:
 
-- skill metadata version: `2dd574dfb6fc`
-- size: 23,408 bytes
-- SHA-256: `a3bf2ae8379375a4c247acf09f5d78e1c2ebcf6b325d22f8ffbec562ccff6460`
+- skill metadata version: `b2348266273a`
+- size: 24,862 bytes
+- SHA-256: `0114e33f413d69ec8d35953f517a66c2bfb71539106d139c2568a3aa59613ae2`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -265,7 +280,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v4.1.4/`; existing
+Current versioned installer inputs live under `artifacts/v5.0.0/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

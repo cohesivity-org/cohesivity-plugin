@@ -3,7 +3,7 @@
   "mcpServers": {
     "cohesivity": {
       "type": "streamable-http",
-      "url": "https://cohesivity.ai/mcp/manage"
+      "url": "https://cohesivity.ai/mcp"
     },
     "cohesivity-local": {
       "type": "stdio",
