@@ -464,3 +464,11 @@ SECURITY.md, and the package description drop the guest/OAuth Connect wording.
 
 Generated package checks pass. 67/68 tests pass before source stamping; only
 archive equality against this source commit is pending.
+
+## 2026-09-24 — Stamp the 5.0.0 install manifest
+
+Pin source/archive commit `a18db9c596ff74bda4ea9e64077e49e090ba82c2` in the
+9400-byte manifest (SHA-256
+`11d44d171299091b061e35b82dcb78e3b1d4ba2bf44ea520239e9862e0e21e58`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
