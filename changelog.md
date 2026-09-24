@@ -485,3 +485,11 @@ All 67 other tests pass before source stamping. The archive-equality test is
 excluded at this step because it compares against the stamped source commit;
 its failure diff on two differing archive buffers exhausted memory rather than
 failing cleanly, which is a pre-existing test weakness and is not changed here.
+
+## 2026-09-24 — Stamp the re-cut 5.0.0 install manifest
+
+Pin source/archive commit `b50c3139630b016bdf6200282acc1504432111b2` in the
+9400-byte manifest (SHA-256
+`c1963d10390c20b4f7ffa0cb70e7b055d21345d35181969799aa2e07c122d0a9`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
