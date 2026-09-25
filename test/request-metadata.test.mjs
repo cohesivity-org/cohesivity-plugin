@@ -48,7 +48,7 @@ test("tools/call rejects non-object metadata before side effects", async () => {
         params: { name: "create_tenant", arguments: { project_root: projectRoot, confirmed: true }, _meta: metadata },
       }, { fetch: async () => { fetches++; throw new Error("unexpected network call"); } });
       assert.equal(response.result.isError, true);
-      assert.equal(response.result.content[0].text, "_meta must be an object.");
+      assert.deepEqual(JSON.parse(response.result.content[0].text), { error: "tool_call_failed", message: "_meta must be an object." });
     }
     assert.equal(fetches, 0);
     assert.deepEqual(readdirSync(projectRoot), []);
@@ -71,7 +71,7 @@ test("request metadata does not relax tool arguments or confirmation", async () 
         fetch: async () => { fetches++; throw new Error("unexpected network call"); },
       });
       assert.equal(response.result.isError, true);
-      assert.equal(response.result.content[0].text, error);
+      assert.equal(JSON.parse(response.result.content[0].text).message, error);
     }
     assert.equal(fetches, 0);
     assert.deepEqual(readdirSync(projectRoot), []);

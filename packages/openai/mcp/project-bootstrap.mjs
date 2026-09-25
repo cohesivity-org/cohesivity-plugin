@@ -273,6 +273,45 @@ const provisionInputSchema = {
   ],
 };
 
+const DOCUMENTATION_TOOL = Object.freeze({
+  name: "get_cohesivity_documentation",
+  title: "Get Cohesivity documentation",
+  description:
+    "Read a current Cohesivity overview, reference, onboarding guide, pricing guide, offerings catalog, or individual offering document.",
+  inputSchema: {
+    type: "object",
+    required: ["document"],
+    properties: {
+      document: {
+        type: "string",
+        enum: ["docs", "quick-reference", "full-reference", "onboarding", "pricing", "offerings", "offering"],
+      },
+      offering: {
+        type: "string",
+        minLength: 1,
+        maxLength: 64,
+        pattern: "^[a-z0-9][a-z0-9-]*$",
+        description: 'Offering slug. Required only when document is "offering".',
+      },
+    },
+    additionalProperties: false,
+  },
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+});
+const DOCUMENT_PATHS = Object.freeze({
+  docs: "docs",
+  "quick-reference": "llms.txt",
+  "full-reference": "llms-full.txt",
+  onboarding: "onboarding",
+  pricing: "pricing",
+  offerings: "offerings",
+});
+
 export const TOOLS = Object.freeze([
   {
     name: "create_tenant",
@@ -393,15 +432,22 @@ export const TOOLS = Object.freeze([
       openWorldHint: true,
     },
   },
+  DOCUMENTATION_TOOL,
 ]);
 
-class SafeError extends Error {}
+class SafeError extends Error {
+  constructor(message, code = "tool_call_failed", httpStatus = undefined) {
+    super(message);
+    this.code = code;
+    this.httpStatus = httpStatus;
+  }
+}
 
 const isRecord = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-function fail(message) {
-  throw new SafeError(message);
+function fail(message, code, httpStatus) {
+  throw new SafeError(message, code, httpStatus);
 }
 
 function exactObject(value, required, optional = []) {
@@ -562,13 +608,19 @@ function ensureCredentialIgnored(projectRoot) {
 
 function readCredentialFields(projectRoot, requireManagementKey = false) {
   const path = credentialPath(projectRoot);
-  const contents = readRegularFile(
-    path,
-    ".cohesivity",
-    "No readable .cohesivity file exists in project_root.",
-    ".cohesivity is unexpectedly large.",
-    MAX_CREDENTIAL_FILE_BYTES,
-  );
+  let contents;
+  try {
+    contents = readRegularFile(
+      path,
+      ".cohesivity",
+      "No readable .cohesivity file exists in project_root.",
+      ".cohesivity is unexpectedly large.",
+      MAX_CREDENTIAL_FILE_BYTES,
+    );
+  } catch (error) {
+    if (error instanceof SafeError) error.code = "tenant_not_available";
+    throw error;
+  }
 
   const fields = Object.create(null);
   const allowedFields = new Set([
@@ -586,13 +638,13 @@ function readCredentialFields(projectRoot, requireManagementKey = false) {
   }
 
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/u.test(fields.tenant_id ?? "")) {
-    fail(".cohesivity does not contain a valid tenant_id.");
+    fail(".cohesivity does not contain a valid tenant_id.", "tenant_not_available");
   }
   if (
     requireManagementKey &&
     !/^coh_man_[a-z0-9]{20}$/u.test(fields.coh_management_key ?? "")
   ) {
-    fail(".cohesivity does not contain a valid management credential.");
+    fail(".cohesivity does not contain a valid management credential.", "tenant_not_available");
   }
   return fields;
 }
@@ -1079,7 +1131,7 @@ async function managementRequest(
   const credentials = readCredentialFields(projectRoot, true);
   const url = new URL(path, MANAGEMENT_API_URL);
   if (url.origin !== new URL(MANAGEMENT_API_URL).origin || !url.pathname.startsWith("/api/")) {
-    fail("Invalid Cohesivity Management API path.");
+    fail("Invalid Cohesivity Management API path.", "management_operation_failed");
   }
 
   let response;
@@ -1097,30 +1149,66 @@ async function managementRequest(
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    fail("The Cohesivity Management API request failed.");
+    fail("The Cohesivity Management API request failed.", "management_operation_failed");
   }
 
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity Management API response is unexpectedly large.");
+    fail("The Cohesivity Management API response is unexpectedly large.", "management_operation_failed");
   }
   const text = await response.text();
   if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity Management API response is unexpectedly large.");
+    fail("The Cohesivity Management API response is unexpectedly large.", "management_operation_failed");
   }
   let document = {};
   if (text.length > 0) {
     try {
       document = JSON.parse(text);
     } catch {
-      fail("The Cohesivity Management API returned an invalid response.");
+      fail("The Cohesivity Management API returned an invalid response.", "management_operation_failed");
     }
   }
   if (!response.ok) {
     const message = isRecord(document) ? document.message || document.error : undefined;
-    fail(`The Cohesivity Management API returned HTTP ${response.status}${message ? `: ${String(message)}` : "."}`);
+    fail(
+      message ? String(message) : "The management operation failed.",
+      "management_operation_failed",
+      response.status,
+    );
   }
   return projectOutput(document);
+}
+
+// Fetches one fixed public Cohesivity page. The offering slug only selects a
+// path under /offerings/, never a caller-supplied URL.
+export async function readDocument(argumentsValue, fetchImpl = globalThis.fetch) {
+  const args = exactObject(argumentsValue, ["document"], ["offering"]);
+  let path = DOCUMENT_PATHS[args.document];
+  if (args.document === "offering") {
+    if (typeof args.offering !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(args.offering)) {
+      fail("The offering field is required for an offering document.");
+    }
+    path = `offerings/${args.offering}`;
+  } else if (path === undefined || args.offering !== undefined) {
+    fail("Unknown document. Use one of the values advertised by tools/list.");
+  }
+  const url = new URL(path, "https://cohesivity.ai/").href;
+  let response;
+  let text;
+  try {
+    response = await fetchImpl(url, {
+      redirect: "error",
+      headers: { Accept: "text/markdown, text/plain", "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(30_000),
+    });
+    text = await response.text();
+  } catch {
+    fail(`Documentation could not be fetched from ${url}.`);
+  }
+  if (!response.ok || Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
+    fail(`Documentation was not found at ${url}.`);
+  }
+  return { text, url };
 }
 
 export async function callTool(name, argumentsValue, dependencies = {}) {
@@ -1160,7 +1248,7 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
     try {
       parsed = new URL(approvalUrl);
     } catch {
-      fail("The Cohesivity Management API did not return a safe approval URL.");
+      fail("The claim operation did not return a safe approval URL.", "invalid_management_response");
     }
     if (
       parsed.origin !== "https://cohesivity.ai" ||
@@ -1170,7 +1258,7 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       parsed.search ||
       parsed.hash
     ) {
-      fail("The Cohesivity Management API did not return a safe approval URL.");
+      fail("The claim operation did not return a safe approval URL.", "invalid_management_response");
     }
     return { tenant_id: credentials.tenant_id, approval_url: approvalUrl };
   }
@@ -1285,15 +1373,23 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
         },
       );
     } catch {
-      fail("The Cohesivity feedback request failed.");
+      fail("Feedback submission could not be confirmed.", "feedback_submission_failed");
     }
   }
 
   fail(`Unknown tool: ${name}.`);
 }
 
-function safeErrorMessage(error) {
-  return error instanceof SafeError ? redactString(error.message) : "The tool call failed safely.";
+function toolError(error) {
+  const value =
+    error instanceof SafeError
+      ? {
+          error: error.code,
+          ...(error.httpStatus === undefined ? {} : { http_status: error.httpStatus }),
+          message: redactString(error.message),
+        }
+      : { error: "tool_call_failed", message: "The tool call failed safely." };
+  return JSON.stringify(value, null, 2);
 }
 
 export async function handleRequest(request, dependencies = {}) {
@@ -1323,8 +1419,20 @@ export async function handleRequest(request, dependencies = {}) {
       const params = exactObject(request.params, ["name"], ["arguments", "_meta"]);
       if (params._meta !== undefined && !isRecord(params._meta)) fail("_meta must be an object.");
       if (typeof params.name !== "string") fail("Tool name must be a string.");
+      if (params.name === DOCUMENTATION_TOOL.name) {
+        const { text, url } = await readDocument(params.arguments ?? {}, dependencies.fetch);
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            content: [{ type: "text", text }],
+            structuredContent: { url, contentType: "text/markdown" },
+            isError: false,
+          },
+        };
+      }
       const result = await callTool(params.name, params.arguments ?? {}, dependencies);
-      const text = JSON.stringify(result);
+      const text = JSON.stringify(result, null, 2);
       if (SECRET_DETECT.test(text)) throw new Error("secret reached the MCP output boundary");
       return {
         jsonrpc: "2.0",
@@ -1340,7 +1448,7 @@ export async function handleRequest(request, dependencies = {}) {
         id: request.id,
         result: {
           isError: true,
-          content: [{ type: "text", text: safeErrorMessage(error) }],
+          content: [{ type: "text", text: toolError(error) }],
         },
       };
     }
@@ -1386,7 +1494,9 @@ if (isMain) {
     : command === "logout" && process.argv.length === 3 ? logout
     : () => fail("Usage: project-bootstrap.mjs [login|logout]");
   Promise.resolve().then(run).catch((error) => {
-    if (command !== undefined) process.stderr.write(`${safeErrorMessage(error)}\n`);
+    if (command !== undefined) process.stderr.write(
+      `${error instanceof SafeError ? redactString(error.message) : "The command failed safely."}\n`,
+    );
     process.exitCode = 1;
   });
 }

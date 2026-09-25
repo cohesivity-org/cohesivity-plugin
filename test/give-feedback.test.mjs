@@ -71,7 +71,7 @@ test("give_feedback sends only trimmed text to the fixed endpoint and projects o
     });
     assert.equal(fetches, 1);
     assert.deepEqual(result.result, {
-      content: [{ type: "text", text: '{"success":true}' }], structuredContent: { success: true },
+      content: [{ type: "text", text: '{\n  "success": true\n}' }], structuredContent: { success: true },
     });
   }
   assert.equal(readFileSync(join(projectRoot, ".cohesivity"), "utf8"), credentialText);
@@ -99,7 +99,7 @@ test("give_feedback rejects missing and extra arguments without echoing their na
     input.params.arguments = args;
     const result = await handleRequest(input, { fetch: () => assert.fail("network must not run") });
     assert.equal(result.result.isError, true);
-    assert.equal(result.result.content[0].text, "give_feedback requires only project_root and feedback.");
+    assert.equal(JSON.parse(result.result.content[0].text).message, "give_feedback requires only project_root and feedback.");
   }
 });
 
@@ -145,7 +145,11 @@ test("give_feedback fails safely on invalid or failed responses without retrying
     });
     assert.equal(fetches, 1);
     assert.deepEqual(result.result, {
-      isError: true, content: [{ type: "text", text: "The Cohesivity feedback request failed." }],
+      isError: true,
+      content: [{
+        type: "text",
+        text: JSON.stringify({ error: "feedback_submission_failed", message: "Feedback submission could not be confirmed." }, null, 2),
+      }],
     });
   }
 });

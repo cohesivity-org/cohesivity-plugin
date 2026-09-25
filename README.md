@@ -33,6 +33,13 @@ no generic shell command or arbitrary HTTP proxy. Creation, claiming, and
 provisioning require literal `confirmed: true`, and Claude Code is instructed
 to prompt on every such call even in permissive permission modes.
 
+The local server also has the read-only `get_cohesivity_documentation` tool
+from the hosted MCP. It fetches only fixed public pages on `https://cohesivity.ai`
+(docs, `llms.txt`, `llms-full.txt`, onboarding, pricing, the offerings catalog,
+or one offering by slug) and needs no project or credential. Failed tool calls
+return the hosted MCP's error shape, `{ "error", "http_status"?, "message" }`,
+as JSON text, and failed Management API calls pass through the API's message.
+
 Local `give_feedback` accepts only `project_root` and `feedback`. Agents may
 submit feedback on Cohesivity and its services anytime without asking the user,
 but must exclude personal information and secrets. The feedback must be a

@@ -590,3 +590,33 @@ Pin source/archive commit `7440aa050302821ff41e6e69e404af548831a09f` in the
 `69c65a6c72e88e7f5ba862416922d7a4e1becdd4540320be473512003a574366`).
 All 69 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Local MCP gets the docs tool and the hosted MCP's error shape (5.0.1 re-cut, COH-297)
+
+The local MCP now has `get_cohesivity_documentation`, copied from the hosted
+MCP with the same name, schema, description, and annotations. It fetches one
+fixed public page on `https://cohesivity.ai` (`docs`, `llms.txt`,
+`llms-full.txt`, `onboarding`, `pricing`, `offerings`, or
+`offerings/<slug>`) with `redirect: "error"` and the 2 MiB response cap. It
+returns the page text with `structuredContent: { url, contentType }`, like the
+hosted tool. It skips the `SECRET_DETECT` output check, because the public docs
+contain `Bearer $KEY` examples. Checked against production, `llms.txt` has 9
+matches and `llms-full.txt` has 74.
+
+Tool errors now use the hosted MCP's shape, `{ "error", "http_status"?,
+"message" }` as JSON text. `SafeError` carries a code. Management API failures
+return `management_operation_failed` with `http_status` and the API's
+`message`. A bad claim URL returns `invalid_management_response`, feedback
+failures return `feedback_submission_failed`, and a missing or invalid
+`.cohesivity` returns `tenant_not_available`. Every other failure returns
+`tool_call_failed`. Successful results are pretty-printed like the hosted MCP.
+Existing tool descriptions are unchanged. The public skill still lists five
+tools, which matches the hosted MCP, where the skill also leaves out the docs
+tool. So the skill-parity test now checks the five tenant tools and allows the
+docs tool.
+
+Over real stdio, `get_cohesivity_documentation` returned `offerings/postgres`
+(6,897 bytes) and `llms-full.txt` (200,887 bytes) from production. A missing
+offering and a missing `.cohesivity` both returned structured errors. All 69
+non-archive tests pass. The v5.0.1 archives are re-cut from this commit. The
+earlier 5.0.1 stamp was never released.

@@ -191,10 +191,10 @@ test("canonical skill is pinned and every portable package copy is byte-identica
   }
 });
 
-test("every skill documents exactly the five supported MCP tools and fails closed", async () => {
+test("every skill documents exactly the five tenant MCP tools and fails closed", async () => {
   const response = await handleRequest({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
   const names = ["create_tenant", "claim_tenant", "tenant_status", "provision_resource", "give_feedback"];
-  assert.deepEqual(response.result.tools.map((tool) => tool.name), names);
+  assert.deepEqual(response.result.tools.map((tool) => tool.name), [...names, "get_cohesivity_documentation"]);
   for (const root of [
     ".",
     "packages/claude",
@@ -714,11 +714,47 @@ test("provision_resource returns next_steps and API error messages like the remo
         { project_root: temporaryRoot, resource: "railway-hosting", confirmed: true },
         { fetch },
       ),
-      /HTTP 409: Delete the domain on tenant other-tenant first\./,
+      (error) => error.code === "management_operation_failed" &&
+        error.httpStatus === 409 &&
+        error.message === "Delete the domain on tenant other-tenant first.",
     );
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }
+});
+
+test("get_cohesivity_documentation reads only fixed public pages", async () => {
+  const urls = [];
+  const fetch = async (url) => {
+    urls.push(String(url));
+    return String(url).endsWith("/offerings/nope")
+      ? { ok: false, status: 404, text: async () => "Unknown resource: nope" }
+      : { ok: true, status: 200, text: async () => "# Postgres\n\ncurl -H 'Authorization: Bearer coh_app_example'" };
+  };
+  const call = (args) =>
+    handleRequest(
+      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_cohesivity_documentation", arguments: args } },
+      { fetch },
+    );
+
+  const found = await call({ document: "offering", offering: "postgres" });
+  assert.deepEqual(found.result, {
+    content: [{ type: "text", text: "# Postgres\n\ncurl -H 'Authorization: Bearer coh_app_example'" }],
+    structuredContent: { url: "https://cohesivity.ai/offerings/postgres", contentType: "text/markdown" },
+    isError: false,
+  });
+  await call({ document: "full-reference" });
+  const missing = await call({ document: "offering", offering: "nope" });
+  assert.equal(missing.result.isError, true);
+  assert.match(JSON.parse(missing.result.content[0].text).message, /not found at https:\/\/cohesivity\.ai\/offerings\/nope/);
+  for (const args of [{ document: "offering", offering: "../api/status" }, { document: "https://evil.example" }]) {
+    assert.equal((await call(args)).result.isError, true);
+  }
+  assert.deepEqual(urls, [
+    "https://cohesivity.ai/offerings/postgres",
+    "https://cohesivity.ai/llms-full.txt",
+    "https://cohesivity.ai/offerings/nope",
+  ]);
 });
 
 test("MCP exposes only strict named tools and never a shell or generic API proxy", async () => {
@@ -732,13 +768,14 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
       "tenant_status",
       "provision_resource",
       "give_feedback",
+      "get_cohesivity_documentation",
     ],
   );
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object", `${tool.name} must declare an object input schema`);
     assert.equal(tool.inputSchema.additionalProperties ?? false, false);
     assert.doesNotMatch(tool.name, /shell|exec|request|fetch|proxy/i);
-    if (tool.name === "tenant_status" || tool.name === "give_feedback") {
+    if (["tenant_status", "give_feedback", "get_cohesivity_documentation"].includes(tool.name)) {
       assert.equal(tool.inputSchema.properties.confirmed, undefined);
       assert.equal(tool._meta, undefined);
     } else {
