@@ -526,3 +526,16 @@ Pin source/archive commit `f8c7e2ee2927155b3b8485049abbee5cfebb1060` in the
 `2b7b80aa877ebb46f0c1ff7e99f2a16f21a0621470f2c854a1e8dd7e1f1b2173`).
 All 68 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Re-cut 5.0.0 on skill mirror dd8df44d
+
+The bundled skill syncs mirror `dd8df44d` (`23874a7d4101`, 25,773 bytes),
+approved after Greptile review of cohesivity PR #537: a signed-in hosted
+connection reaches only tenants the account created or owns, and a tenant
+created without sign-in stays on key-based access until it is claimed. The
+canonical skill, every packaged copy, and the v5.0.0 archives are rebuilt
+from it. The earlier 5.0.0 stamps were never referenced by a released
+installer; their commits stay unchanged.
+
+All 67 other tests pass before source stamping; the archive-equality test is
+excluded at this step, as in the previous re-cut.

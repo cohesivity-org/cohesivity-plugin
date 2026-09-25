@@ -263,11 +263,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@8a4827821c6ee6b803e69ff631cb29702a3143a1`:
+`cohesivity-org/cohesivity-skill@dd8df44d38749ea08903844368f73609cd00f69b`:
 
-- skill metadata version: `1ea09c29c742`
-- size: 25,301 bytes
-- SHA-256: `44967c6cf60c8ee43e923fbc467d362a2dd4c7dc0f7a93d8b48ed1a9579f8f2c`
+- skill metadata version: `23874a7d4101`
+- size: 25,773 bytes
+- SHA-256: `4dab14ccb96f6f2ad3edcf5d24bddc489c1372a28c917ed84f0af641d9ea8232`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
