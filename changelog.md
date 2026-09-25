@@ -547,3 +547,38 @@ Pin source/archive commit `32a8134bd7bfd69929d59670a625bfb031aa092b` in the
 `97afafe1fdd02f1a301bc09e68ce2284b7c1cc3b0d5b1c4062e1234194d537e6`).
 All 68 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Local MCP returns the same fields as the hosted MCP (5.0.1, COH-297)
+
+A Dexto agent provisioned `railway-hosting` through the local MCP and then made
+5 blind polling attempts and 3 deploy attempts, 12 of its 35 tool calls,
+because the response never included `next_steps`. The local MCP filtered every
+API response through `SAFE_API_KEYS`, one flat allowlist of 66 keys applied at
+every depth. That list lacked `next_steps`, `base_url`, `endpoint`, `address`,
+`primary_region`, `quota_profile`, `custom_domain`, and other operational
+fields the hosted MCP already returns.
+
+COH-297 proposed a pure deny-list, on the belief that the hosted MCP uses one.
+It doesn't. `projectDto` in `worker/src/mcp-management.js` first keeps the
+per-tool top-level fields in `MANAGEMENT_OUTPUT_FIELDS`, then runs
+`sensitiveKey()` and `redactString()` over nested values. We chose to match the
+hosted MCP instead, so an agent sees the same response from both, and the
+security posture stays the one already in production.
+
+`mcp/project-bootstrap.mjs` now carries a copy of `MANAGEMENT_OUTPUT_FIELDS`,
+`sensitiveKey()`, and `redactString()` from the hosted MCP, applied through
+`projectDto(dto)` for claim, status, and provision. This removes
+`SAFE_API_KEYS`, `SECRET_KEY`, `SECRET_VALUE`, `projectTenantStatus`, and the
+depth, array, and string-length caps. So `tenant_status` now returns resource
+details, and `account.owner_user_id`, the same as the hosted MCP.
+Management API errors now include the API's `message`, as the hosted MCP does,
+instead of just the HTTP status. `claim_tenant` also rejects approval URLs that
+contain a username or password, as the hosted MCP does. Tool descriptions are
+unchanged. The field list now exists in both repos, so a new hosted field must
+also be added here.
+
+The version moves to 5.0.1 because published `@cohesivity/init@0.9.0` pins the
+5.0.0 manifest. The new tests cover `next_steps` passthrough, dropping
+credential-named nested fields, and forwarding the error message. All 67
+non-archive tests pass. The two archive tests need the source-commit stamp that
+follows.

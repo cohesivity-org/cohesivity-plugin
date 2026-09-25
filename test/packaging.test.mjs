@@ -38,7 +38,7 @@ import {
   QUICKSTART_URL,
   callTool,
   handleRequest,
-  redactApiOutput,
+  safeValue,
   validateProjectRoot,
 } from "../mcp/project-bootstrap.mjs";
 
@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.0.0");
+  assert.equal(VERSION, "5.0.1");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -620,14 +620,14 @@ test("management tools use fixed API routes and redact credential-bearing respon
     const serialized = JSON.stringify(outputs);
     assert.doesNotMatch(serialized, /coh_(?:man|app)_/);
     assert.doesNotMatch(serialized, /Bearer\s/i);
-    assert.doesNotMatch(serialized, /owner_user_id|authorization|credential|details/);
+    assert.doesNotMatch(serialized, /authorization|credential|details/);
     assert.equal(outputs[0].approval_url, "https://cohesivity.ai/c/safe-handoff");
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }
 });
 
-test("tenant status preserves the API resource_name without exposing resource details", async () => {
+test("tenant status passes resource details through and drops credential-named fields", async () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-status-projection-"));
   writeFileSync(
     join(temporaryRoot, ".cohesivity"),
@@ -639,30 +639,83 @@ test("tenant status preserves the API resource_name without exposing resource de
     headers: new Headers(),
     text: async () =>
       JSON.stringify({
+        tenant_id: "swift-fox-running",
         resources: [
           {
             resource_name: "postgres",
             status: "active",
             credential: "coh_app_abcdefghij1234567890",
-            deployment_url: "https://private.example/capability",
+            deployment_url: "https://app.example",
             connection_string: "postgresql://private.example/database",
-            provider: { name: "private-provider", project_id: "private-project" },
-            input: { arbitrary: { nested: "private-input" } },
           },
         ],
       }),
   });
 
   try {
+    const output = await callTool("tenant_status", { project_root: temporaryRoot }, { fetch });
+    assert.deepEqual(output, {
+      tenant_id: "swift-fox-running",
+      status: {
+        resources: [{ resource_name: "postgres", status: "active", deployment_url: "https://app.example" }],
+      },
+    });
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test("provision_resource returns next_steps and API error messages like the remote MCP", async () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "cohesivity-provision-projection-"));
+  writeFileSync(
+    join(temporaryRoot, ".cohesivity"),
+    "tenant_id=swift-fox-running\ncoh_management_key=coh_man_1234567890abcdefghij\n",
+  );
+  const responses = [
+    {
+      ok: true,
+      status: 200,
+      body: {
+        success: true,
+        resource: "railway-hosting",
+        base_url: "https://app.example",
+        primary_region: "us-east4",
+        next_steps: ["POST /api/railway/deploy?wait=ready"],
+        management_key: "coh_man_1234567890abcdefghij",
+        internal_field: "not in the remote DTO",
+      },
+    },
+    { ok: false, status: 409, body: { error: "conflict", message: "Delete the domain on tenant other-tenant first." } },
+  ];
+  const fetch = async () => {
+    const { ok, status, body } = responses.shift();
+    return { ok, status, headers: new Headers(), text: async () => JSON.stringify(body) };
+  };
+
+  try {
     const output = await callTool(
-      "tenant_status",
-      { project_root: temporaryRoot },
+      "provision_resource",
+      { project_root: temporaryRoot, resource: "railway-hosting", confirmed: true },
       { fetch },
     );
     assert.deepEqual(output, {
-      tenant_id: "swift-fox-running",
-      status: { resources: [{ resource_name: "postgres", status: "active" }] },
+      resource: "railway-hosting",
+      result: {
+        success: true,
+        resource: "railway-hosting",
+        base_url: "https://app.example",
+        primary_region: "us-east4",
+        next_steps: ["POST /api/railway/deploy?wait=ready"],
+      },
     });
+    await assert.rejects(
+      callTool(
+        "provision_resource",
+        { project_root: temporaryRoot, resource: "railway-hosting", confirmed: true },
+        { fetch },
+      ),
+      /HTTP 409: Delete the domain on tenant other-tenant first\./,
+    );
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }
@@ -710,13 +763,13 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
     callTool("bulk_provision_resources", {}),
     /Unknown tool: bulk_provision_resources/,
   );
-  assert.deepEqual(redactApiOutput({ status: "ok", token: "hidden", message: "coh_man_123" }), {
-    message: "[REDACTED]",
+  assert.deepEqual(safeValue({ status: "ok", access_token: "hidden", message: "coh_man_123" }), {
+    message: "[redacted]",
     status: "ok",
   });
   let nested = { message: "coh_man_1234567890abcdefghij" };
   for (let depth = 0; depth < 10; depth += 1) nested = { account: nested };
-  assert.doesNotMatch(JSON.stringify(redactApiOutput(nested)), /coh_man_/);
+  assert.doesNotMatch(JSON.stringify(safeValue(nested)), /coh_man_/);
 });
 
 function tarPaths(archive) {
@@ -786,7 +839,7 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.0/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.0\/`/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.1\/`/);
   assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.0 and initializer\n0\.9\.0/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));

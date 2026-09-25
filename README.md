@@ -28,7 +28,7 @@ The same server exposes fixed claim, status, provision, and feedback operations
 against the Cohesivity Management API. Its provision tool accepts either one resource
 or a resource list, so single and bulk provisioning share one tool. Those
 operations read the project's `.cohesivity` management credential internally,
-project allowlisted responses, and never expose either `coh_*` value. There is
+return the same response fields as the hosted MCP, and never expose either `coh_*` value. There is
 no generic shell command or arbitrary HTTP proxy. Creation, claiming, and
 provisioning require literal `confirmed: true`, and Claude Code is instructed
 to prompt on every such call even in permissive permission modes.
@@ -285,7 +285,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v5.0.0/`; existing
+Current versioned installer inputs live under `artifacts/v5.0.1/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
