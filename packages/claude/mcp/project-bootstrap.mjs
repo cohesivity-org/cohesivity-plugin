@@ -1183,7 +1183,7 @@ async function managementRequest(
 // path under /offerings/, never a caller-supplied URL.
 export async function readDocument(argumentsValue, fetchImpl = globalThis.fetch) {
   const args = exactObject(argumentsValue, ["document"], ["offering"]);
-  let path = DOCUMENT_PATHS[args.document];
+  let path = Object.hasOwn(DOCUMENT_PATHS, args.document) ? DOCUMENT_PATHS[args.document] : undefined;
   if (args.document === "offering") {
     if (typeof args.offering !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(args.offering)) {
       fail("The offering field is required for an offering document.");

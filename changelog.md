@@ -628,3 +628,14 @@ Pin source/archive commit `61b7ff64b4da81dd031475633d188808e3ab8879` in the
 `f8993a917dc79ee9714aa756b2252e7e08a5d4919551446632604b95e5f4a581`).
 All 70 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Reject inherited document names in the local docs tool (5.0.1 re-cut, COH-297)
+
+Greptile on PR #24 found that `get_cohesivity_documentation` accepted
+`document: "__proto__"`. It resolved the inherited object and fetched
+`https://cohesivity.ai/[object%20Object]`. The lookup now requires an own key
+in `DOCUMENT_PATHS`, and the docs-tool test covers `__proto__`. We dismissed
+Greptile's other finding, that a nested status resource named `token` or
+`apiKey` would reach the agent. `worker/src/status.js` builds each resource
+entry from fixed non-secret fields, and the hosted MCP applies the same filter.
+The v5.0.1 archives are re-cut from this commit.

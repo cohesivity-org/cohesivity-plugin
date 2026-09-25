@@ -747,7 +747,7 @@ test("get_cohesivity_documentation reads only fixed public pages", async () => {
   const missing = await call({ document: "offering", offering: "nope" });
   assert.equal(missing.result.isError, true);
   assert.match(JSON.parse(missing.result.content[0].text).message, /not found at https:\/\/cohesivity\.ai\/offerings\/nope/);
-  for (const args of [{ document: "offering", offering: "../api/status" }, { document: "https://evil.example" }]) {
+  for (const args of [{ document: "offering", offering: "../api/status" }, { document: "https://evil.example" }, { document: "__proto__" }]) {
     assert.equal((await call(args)).result.isError, true);
   }
   assert.deepEqual(urls, [
