@@ -647,3 +647,24 @@ Pin source/archive commit `cd0230e23e496a0a17fbbec8770659ed1c1d8939` in the
 `63c556e7f98fbe8d76dd7ff7fbe6ddf2b3df2a8f34239b4cef66785ca7820698`).
 All 70 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Bundle the skill that points at init 0.9.1; plugin 5.0.2 (COH-297)
+
+The bundled skill syncs mirror `18c5f37c` (`39cad13754e6`, 25,773 bytes,
+SHA-256 `558926d7…eacc5`), a version-only edit approved by the user: the
+no-MCP fallback runs `@cohesivity/init@0.9.1`, and the coordinated-release
+line names plugin 5.0.2 and initializer 0.9.1. Nothing else in the skill or the
+local MCP changes; the MCP behavior is the 5.0.1 code from PR #24.
+
+This is a new version rather than a re-cut of 5.0.1. Every earlier re-cut
+(5.0.0 on `fb534f60`, `8a482782`, and `dd8df44d`; 5.0.1 twice) happened inside
+the open PR before it merged. 5.0.1 is already on `main` through merge
+`e7a4a256`, its `artifacts/v5.0.1/` inputs are referenced from the changelog by
+commit, and the README says existing artifact directories stay immutable, so
+rewriting them after the fact would break that rule. Nothing released pins
+5.0.1, so it is skipped, not superseded.
+
+The canonical skill, every packaged copy, README, and packaging expectations
+follow. The version moves in `SERVER_VERSION`, `package.json`, and the generated
+manifests. With a non-symlinked `TMPDIR`, 69/70 tests pass before source
+stamping; only archive equality against this source commit is pending.

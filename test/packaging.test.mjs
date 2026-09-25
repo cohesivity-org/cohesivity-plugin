@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.0.1");
+  assert.equal(VERSION, "5.0.2");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "dd8df44d38749ea08903844368f73609cd00f69b");
-  assert.equal(SKILL_VERSION, "23874a7d4101");
+  assert.equal(SKILL_SOURCE_COMMIT, "18c5f37cfe6e2eb165df3ecde588294b7c9a17d3");
+  assert.equal(SKILL_VERSION, "39cad13754e6");
   assert.equal(canonical.length, 25773);
   assert.equal(
     SKILL_SHA256,
-    "4dab14ccb96f6f2ad3edcf5d24bddc489c1372a28c917ed84f0af641d9ea8232",
+    "558926d7d8b00abb91b957cc23beabb829f1f8da228984c1facc41d157ceacc5",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -213,8 +213,8 @@ test("every skill documents exactly the five tenant MCP tools and fails closed",
     assert.match(operations, /Exclude personal information and secrets/);
     assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.0/);
-    assert.doesNotMatch(skill, /@cohesivity\/init@0\.8\.6/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.1/);
+    assert.doesNotMatch(skill, /@cohesivity\/init@0\.9\.0/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -875,9 +875,9 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.9\.0/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.1\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.0 and initializer\n0\.9\.0/);
+  assert.match(readme, /@cohesivity\/init@0\.9\.1/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.2\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.2 and initializer\n0\.9\.1/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
