@@ -582,3 +582,11 @@ The version moves to 5.0.1 because published `@cohesivity/init@0.9.0` pins the
 credential-named nested fields, and forwarding the error message. All 67
 non-archive tests pass. The two archive tests need the source-commit stamp that
 follows.
+
+## 2026-09-25 — Stamp the 5.0.1 install manifest (COH-297)
+
+Pin source/archive commit `7440aa050302821ff41e6e69e404af548831a09f` in the
+9400-byte manifest (SHA-256
+`69c65a6c72e88e7f5ba862416922d7a4e1becdd4540320be473512003a574366`).
+All 69 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
