@@ -493,3 +493,16 @@ Pin source/archive commit `b50c3139630b016bdf6200282acc1504432111b2` in the
 `c1963d10390c20b4f7ffa0cb70e7b055d21345d35181969799aa2e07c122d0a9`).
 All 68 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Clarify owner overrides and creation prerequisites in the README
+
+Greptile review of PR #23. The README said reinstalling the plugin reconfigures
+clients still on `/mcp/manage`; it updates only the bundled entry, so an
+OpenClaw `openclaw mcp set` or Hermes `config.yaml` owner override keeps its
+saved URL until the owner changes it. The credential-response paragraph also
+listed the OAuth scope as if it applied to every hosted creation; it now names
+confirmation plus admission checks for public creation and the scope plus
+ownership check only for signed-in creation. README only: no package or
+archive content changes, so the 5.0.0 stamp is unchanged. All 68 tests pass.
+
+Refs COH-296

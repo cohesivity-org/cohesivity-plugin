@@ -136,7 +136,10 @@ client secret, or other credential.
 
 The former `https://cohesivity.ai/mcp/manage` endpoint is retired and returns
 HTTP 410; it is not an alias. Clients configured with it must be reconfigured
-to `https://cohesivity.ai/mcp` (reinstalling this plugin does that). OAuth
+to `https://cohesivity.ai/mcp`. Reinstalling this plugin updates the bundled
+entry, but not an owner-managed entry saved separately, such as the OpenClaw
+`openclaw mcp set` override or a Hermes `config.yaml` override shown below;
+change that saved URL to `https://cohesivity.ai/mcp` by hand. OAuth
 tokens issued for the old resource are rejected, so a client that signed in
 before the move must sign in again. The same applies to the optional local CLI
 sign-in: a saved sign-in for the old resource fails closed with a message to
@@ -145,9 +148,11 @@ run `logout` and then `login`, and `logout` still revokes it. Existing
 
 Hosted `create_tenant` returns existing metadata plus
 `credentials_file: { filename: ".cohesivity", content: "<exact .cohesivity file contents>" }`
-in both `structuredContent` and the compatible text result. The existing OAuth
-`mcp:tenants:create` scope, confirmation, and fresh account ownership or
-guest-creation checks authorize this deliberate secret-bearing response. It
+in both `structuredContent` and the compatible text result. For public
+creation, `confirmed: true` and the creation admission checks (per-IP rate
+limit) authorize this deliberate secret-bearing response; no sign-in is
+involved. For signed-in creation, the `mcp:tenants:create` scope,
+confirmation, and a fresh account ownership check authorize it. It
 may enter model or client retained tool history. The calling agent writes the
 content verbatim to the current project's `.cohesivity` with mode `0600` and
 gitignores it. Never overwrite a different existing tenant, print credentials
