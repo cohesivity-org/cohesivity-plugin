@@ -14,17 +14,17 @@ import { SERVER_VERSION } from "../mcp/project-bootstrap.mjs";
 
 export const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 export const VERSION = SERVER_VERSION;
-export const MCP_ENDPOINT = "https://cohesivity.ai/mcp/manage";
+export const MCP_ENDPOINT = "https://cohesivity.ai/mcp";
 export const LOCAL_MCP_SOURCE = "mcp/project-bootstrap.mjs";
-export const SKILL_SOURCE_COMMIT = "b4ce7217b942ea69f2dacde0d464c0a628857bee";
-export const SKILL_VERSION = "2dd574dfb6fc";
+export const SKILL_SOURCE_COMMIT = "dd8df44d38749ea08903844368f73609cd00f69b";
+export const SKILL_VERSION = "23874a7d4101";
 export const SKILL_SHA256 =
-  "a3bf2ae8379375a4c247acf09f5d78e1c2ebcf6b325d22f8ffbec562ccff6460";
+  "4dab14ccb96f6f2ad3edcf5d24bddc489c1372a28c917ed84f0af641d9ea8232";
 
 const PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
 const MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
 const DESCRIPTION =
-  "Cohesivity backend infrastructure skill with local project bootstrap and OAuth-protected remote management tools.";
+  "Cohesivity backend infrastructure skill with local project bootstrap and a public remote MCP for documentation and management, with optional account OAuth.";
 const MARKETPLACE_DESCRIPTION =
   "cohesivity.ai offers free agent native backend services. Annonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. topups through x402.";
 const AUTHOR = {

@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "4.1.4");
+  assert.equal(VERSION, "5.0.0");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -165,12 +165,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "b4ce7217b942ea69f2dacde0d464c0a628857bee");
-  assert.equal(SKILL_VERSION, "2dd574dfb6fc");
-  assert.equal(canonical.length, 23408);
+  assert.equal(SKILL_SOURCE_COMMIT, "dd8df44d38749ea08903844368f73609cd00f69b");
+  assert.equal(SKILL_VERSION, "23874a7d4101");
+  assert.equal(canonical.length, 25773);
   assert.equal(
     SKILL_SHA256,
-    "a3bf2ae8379375a4c247acf09f5d78e1c2ebcf6b325d22f8ffbec562ccff6460",
+    "4dab14ccb96f6f2ad3edcf5d24bddc489c1372a28c917ed84f0af641d9ea8232",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -213,7 +213,8 @@ test("every skill documents exactly the five supported MCP tools and fails close
     assert.match(operations, /Exclude personal information and secrets/);
     assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.8\.6/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.0/);
+    assert.doesNotMatch(skill, /@cohesivity\/init@0\.8\.6/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -299,7 +300,7 @@ test("native wrapper package roots use each client's remote MCP shape", () => {
   );
 });
 
-test("all packaged MCP definitions omit auth data and the public docs endpoint", () => {
+test("all packaged MCP definitions omit auth data and the retired management endpoint", () => {
   for (const path of [
     "mcp.json",
     "packages/claude/.mcp.json",
@@ -315,8 +316,8 @@ test("all packaged MCP definitions omit auth data and the public docs endpoint",
     assert.equal(keys.includes("auth"), false, `${path} contains auth`);
     assert.equal(keys.includes("oauth"), false, `${path} contains oauth`);
     assert.doesNotMatch(contents, /Authorization|Bearer\s/i);
-    assert.doesNotMatch(contents, /"https:\/\/cohesivity\.ai\/mcp"/);
-    assert.match(contents, /https:\/\/cohesivity\.ai\/mcp\/manage/);
+    assert.match(contents, /"https:\/\/cohesivity\.ai\/mcp"/);
+    assert.doesNotMatch(contents, /\/mcp\/manage/);
   }
 });
 
@@ -766,7 +767,7 @@ test("versioned archives and install manifest are deterministic, complete, and t
   }
 });
 
-test("every remote wrapper preserves the exact management MCP URL", () => {
+test("every remote wrapper preserves the exact unified MCP URL", () => {
   assert.equal(REMOTE_MCP_URL, endpoint);
   const serialized = [
     json("mcp.json"),
@@ -777,16 +778,16 @@ test("every remote wrapper preserves the exact management MCP URL", () => {
     json("packages/codex/plugins/cohesivity/.mcp.json"),
   ].map(JSON.stringify);
   for (const document of serialized) {
-    assert.match(document, /https:\/\/cohesivity\.ai\/mcp\/manage/);
-    assert.doesNotMatch(document, /https:\/\/cohesivity\.ai\/mcp"/);
+    assert.match(document, /https:\/\/cohesivity\.ai\/mcp"/);
+    assert.doesNotMatch(document, /\/mcp\/manage/);
   }
 });
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.8\.6/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v4\.1\.4\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 4\.1\.4 and initializer\n0\.8\.6/);
+  assert.match(readme, /@cohesivity\/init@0\.9\.0/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.0\/`/);
+  assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.0 and initializer\n0\.9\.0/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
@@ -794,7 +795,8 @@ test("README documents the Hermes owner override without an unstable hash", () =
   assert.match(readme, /claude plugin marketplace add \.\//);
   assert.doesNotMatch(readme, /claude plugin marketplace add \.\n/);
   assert.match(readme, /mcp_servers:\n  <qualified-server-name>:/);
-  assert.match(readme, /url: https:\/\/cohesivity\.ai\/mcp\/manage/);
+  assert.match(readme, /url: https:\/\/cohesivity\.ai\/mcp\n/);
+  assert.match(readme, /`https:\/\/cohesivity\.ai\/mcp\/manage` endpoint is retired and returns\nHTTP 410/);
   assert.match(readme, /auth: oauth/);
   assert.match(readme, /hermes mcp login <qualified-server-name>/);
   assert.match(readme, /replaces the whole bundle entry/);

@@ -437,3 +437,113 @@ Pin source/archive commit `3b75fe1a158402b117795f35ed1e7339cdab1a3d` in the
 `482f6de00ede8d510a7b16052c7519d896efc74cf5f939e4d43fc64382374b60`).
 All 64 tests pass with a non-symlinked `TMPDIR`, along with generated checks.
 Only the manifest changed in this step; prior artifacts remain unchanged.
+
+## 2026-09-24 — Point every remote wrapper at the unified /mcp server
+
+Plugin 5.0.0. Cohesivity's two hosted MCP servers (read-only docs at `/mcp`,
+public management at `/mcp/manage`) merge into one server at
+`https://cohesivity.ai/mcp`, and `/mcp/manage` now returns HTTP 410 with no
+alias or redirect (core change, Refs COH-296). Every generated remote wrapper
+(`mcp.json`, Claude, Codex/OpenAI, Gemini, Antigravity) now uses `/mcp`; the
+packaging tests invert the old rule and reject `/mcp/manage`. The major version
+marks the breaking endpoint and OAuth-resource move for installed clients.
+
+The local server's optional CLI sign-in now targets the `/mcp` OAuth resource,
+refuses token responses for any other resource, and records the resource in
+`mcp-auth.json`. A saved sign-in without that resource (older logins, all bound
+to `/mcp/manage`) fails closed before any network request, with a message to run
+`logout` and then `login`; it never refreshes, falls back to guest, or is
+rewritten as `/mcp`. `logout` still revokes it. Existing projects with a valid
+`.cohesivity` never load saved sign-in, so they keep working. The five local
+tools and their filesystem safeguards are unchanged.
+
+The canonical skill syncs mirror `8703edc6` (`b2348266273a`, 24,862 bytes),
+which the user approved: it describes the public hosted server, optional
+account OAuth, the retired endpoint, and the initializer 0.9.0 pin. README,
+SECURITY.md, and the package description drop the guest/OAuth Connect wording.
+
+Generated package checks pass. 67/68 tests pass before source stamping; only
+archive equality against this source commit is pending.
+
+## 2026-09-24 — Stamp the 5.0.0 install manifest
+
+Pin source/archive commit `a18db9c596ff74bda4ea9e64077e49e090ba82c2` in the
+9400-byte manifest (SHA-256
+`11d44d171299091b061e35b82dcb78e3b1d4ba2bf44ea520239e9862e0e21e58`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
+
+## 2026-09-24 — Re-cut 5.0.0 on the corrected skill mirror
+
+The skill mirror `8703edc6` (`b2348266273a`) pinned by the first 5.0.0 cut
+dropped the legacy guest reconnect rule. Mirror `fb534f60` (`8635569596a1`,
+25,001 bytes) restores it, so the canonical skill, every packaged copy, and the
+v5.0.0 archives are rebuilt from it. The earlier 5.0.0 stamp (`2da59bc6`) was
+never referenced by a released installer; its commits stay unchanged.
+
+All 67 other tests pass before source stamping. The archive-equality test is
+excluded at this step because it compares against the stamped source commit;
+its failure diff on two differing archive buffers exhausted memory rather than
+failing cleanly, which is a pre-existing test weakness and is not changed here.
+
+## 2026-09-24 — Stamp the re-cut 5.0.0 install manifest
+
+Pin source/archive commit `b50c3139630b016bdf6200282acc1504432111b2` in the
+9400-byte manifest (SHA-256
+`c1963d10390c20b4f7ffa0cb70e7b055d21345d35181969799aa2e07c122d0a9`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Clarify owner overrides and creation prerequisites in the README
+
+Greptile review of PR #23. The README said reinstalling the plugin reconfigures
+clients still on `/mcp/manage`; it updates only the bundled entry, so an
+OpenClaw `openclaw mcp set` or Hermes `config.yaml` owner override keeps its
+saved URL until the owner changes it. The credential-response paragraph also
+listed the OAuth scope as if it applied to every hosted creation; it now names
+confirmation plus admission checks for public creation and the scope plus
+ownership check only for signed-in creation. README only: no package or
+archive content changes, so the 5.0.0 stamp is unchanged. All 68 tests pass.
+
+Refs COH-296
+
+## 2026-09-25 — Re-cut 5.0.0 on skill mirror 8a482782
+
+The bundled skill syncs mirror `8a482782` (`1ea09c29c742`, 25,301 bytes),
+approved after Greptile review: signed-in hosted calls take only `tenant_id`,
+and account creation reuses one `idempotency_key` for retries. The canonical
+skill, every packaged copy, and the v5.0.0 archives are rebuilt from it. The
+earlier 5.0.0 stamps (`2da59bc6`, `72ae1111`) were never referenced by a
+released installer; their commits stay unchanged.
+
+All 67 other tests pass before source stamping; the archive-equality test is
+excluded at this step, as in the previous re-cut.
+
+## 2026-09-25 — Stamp the re-cut 5.0.0 install manifest (8a482782 skill)
+
+Pin source/archive commit `f8c7e2ee2927155b3b8485049abbee5cfebb1060` in the
+9400-byte manifest (SHA-256
+`2b7b80aa877ebb46f0c1ff7e99f2a16f21a0621470f2c854a1e8dd7e1f1b2173`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Re-cut 5.0.0 on skill mirror dd8df44d
+
+The bundled skill syncs mirror `dd8df44d` (`23874a7d4101`, 25,773 bytes),
+approved after Greptile review of cohesivity PR #537: a signed-in hosted
+connection reaches only tenants the account created or owns, and a tenant
+created without sign-in stays on key-based access until it is claimed. The
+canonical skill, every packaged copy, and the v5.0.0 archives are rebuilt
+from it. The earlier 5.0.0 stamps were never referenced by a released
+installer; their commits stay unchanged.
+
+All 67 other tests pass before source stamping; the archive-equality test is
+excluded at this step, as in the previous re-cut.
+
+## 2026-09-25 — Stamp the re-cut 5.0.0 install manifest (dd8df44d skill)
+
+Pin source/archive commit `32a8134bd7bfd69929d59670a625bfb031aa092b` in the
+9400-byte manifest (SHA-256
+`97afafe1fdd02f1a301bc09e68ce2284b7c1cc3b0d5b1c4062e1234194d537e6`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.

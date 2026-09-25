@@ -22,7 +22,9 @@ function credentials(project, lifecycle = "ephemeral") {
   writeFileSync(join(project, ".cohesivity"), `tenant_id=swift-fox-running\ncoh_management_key=coh_man_1234567890abcdefghij\ncoh_application_key=coh_app_abcdefghij1234567890\ntenant_lifecycle=${lifecycle}\nruntime_profile=stable-v1\n`, { mode: 0o600 });
 }
 const response = (value) => new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
-const tokenResponse = (extra = {}) => ({ access_token: accessToken, refresh_token: refreshToken, token_type: "Bearer", expires_in: 600, principal_type: "account", ...extra });
+const RESOURCE = "https://cohesivity.ai/mcp";
+const RETIRED_RESOURCE = "https://cohesivity.ai/mcp/manage";
+const tokenResponse = (extra = {}) => ({ access_token: accessToken, refresh_token: refreshToken, token_type: "Bearer", expires_in: 600, principal_type: "account", resource: RESOURCE, ...extra });
 function authFile(home, extra = {}) {
   const directory = join(home, ".config", "cohesivity");
   mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -113,7 +115,7 @@ test("account bootstrap refreshes privately and reuses its idempotency key after
         if (String(url) === "https://cohesivity.ai/oauth/token") {
           refreshes++;
           assert.equal(options.body.get("grant_type"), "refresh_token");
-          assert.equal(options.body.get("resource"), "https://cohesivity.ai/mcp/manage");
+          assert.equal(options.body.get("resource"), RESOURCE);
           return response(tokenResponse());
         }
         return new Response(script);
@@ -175,6 +177,7 @@ test("login uses DCR, PKCE, account-required consent and protected user auth sto
       assert.equal(String(url), "https://cohesivity.ai/oauth/token");
       assert.equal(options.body.get("grant_type"), "authorization_code");
       assert.equal(options.body.get("code"), "authorization-code");
+      assert.equal(options.body.get("resource"), RESOURCE);
       const { createHash } = await import("node:crypto");
       assert.equal(createHash("sha256").update(options.body.get("code_verifier")).digest("base64url"), authorize.searchParams.get("code_challenge"));
       return response(tokenResponse());
@@ -183,9 +186,11 @@ test("login uses DCR, PKCE, account-required consent and protected user auth sto
   assert.equal(authorize.origin, "https://cohesivity.ai");
   assert.equal(authorize.searchParams.get("account_required"), "true");
   assert.equal(authorize.searchParams.get("code_challenge_method"), "S256");
+  assert.equal(authorize.searchParams.get("resource"), RESOURCE);
   const path = join(home, ".config", "cohesivity", "mcp-auth.json");
   assert.equal(statSync(path).mode & 0o777, 0o600);
   assert.equal(JSON.parse(readFileSync(path)).principal_type, "account");
+  assert.equal(JSON.parse(readFileSync(path)).resource, RESOURCE);
   assert.equal(closed, true);
   assert.doesNotMatch(output.join(""), new RegExp(`${accessToken}|${refreshToken}`));
   await logout({ env, fetch: async () => new Response(""), stderr: { write() {} } }); assert.equal(existsSync(path), false);
@@ -431,4 +436,75 @@ test("social-login accepts IPv6 loopback and rejects non-loopback HTTP", async (
   await callTool("provision_resource", { project_root: project, resource: "social-login", configuration: { callback_urls: ["http://[::1]:5173/auth/done"] }, confirmed: true }, dependencies);
   await assert.rejects(callTool("provision_resource", { project_root: project, resource: "social-login", configuration: { callback_urls: ["http://[::2]:5173/auth/done"] }, confirmed: true }, dependencies), /localhost/);
   assert.equal(calls, 1);
+});
+
+test("login refuses a token issued for any resource other than /mcp", async (t) => {
+  for (const resource of [RETIRED_RESOURCE, undefined, "https://evil.example/mcp"]) {
+    const { home, env } = fixture(t);
+    await assert.rejects(login({
+      env, stderr: { write() {} },
+      callback: async () => ({ redirectUri: "http://127.0.0.1:12345/callback", wait: async () => "code", close() {} }),
+      openBrowser: async () => {},
+      fetch: async (url) => response(String(url).endsWith("register") ? { client_id: "client" } : tokenResponse({ resource })),
+    }), /unexpected resource/i);
+    assert.equal(existsSync(join(home, ".config", "cohesivity", "mcp-auth.json")), false);
+  }
+});
+
+test("saved sign-in for the retired /mcp/manage resource fails closed before any network call", async (t) => {
+  for (const extra of [{ resource: RETIRED_RESOURCE }, { resource: undefined }, { resource: RETIRED_RESOURCE, expires_at: 1 }]) {
+    const { project, home, env } = fixture(t);
+    const path = authFile(home, extra);
+    const before = readFileSync(path, "utf8");
+    await assert.rejects(callTool("create_tenant", { project_root: project, confirmed: true }, {
+      env,
+      fetch: () => assert.fail("an obsolete sign-in must not refresh, download, or fall back to guest"),
+      runQuickstart: () => assert.fail("must not run"),
+    }), (error) => {
+      assert.match(error.message, /retired/i);
+      assert.match(error.message, /logout.*login/i);
+      assert.doesNotMatch(error.message, new RegExp(`${accessToken}|${refreshToken}`));
+      return true;
+    });
+    assert.equal(readFileSync(path, "utf8"), before);
+    assert.equal(existsSync(join(project, ".cohesivity")), false);
+  }
+});
+
+test("existing projects keep working when saved sign-in is for the retired resource", async (t) => {
+  const { project, home, env } = fixture(t);
+  credentials(project);
+  authFile(home, { resource: RETIRED_RESOURCE });
+  let runs = 0;
+  await callTool("create_tenant", { project_root: project, confirmed: true }, {
+    env,
+    fetch: async (url) => { assert.equal(String(url), "https://cohesivity.ai/quickstart.sh"); return new Response(script); },
+    runQuickstart: async (_script, args) => { assert.deepEqual(args, []); runs++; },
+  });
+  assert.equal(runs, 1);
+  const status = await callTool("tenant_status", { project_root: project }, {
+    env,
+    fetch: async (url, options) => {
+      assert.equal(String(url), "https://cohesivity.ai/api/status");
+      assert.equal(options.headers.Authorization, "Bearer coh_man_1234567890abcdefghij");
+      return response({ account: { lifecycle: "ephemeral" } });
+    },
+  });
+  assert.equal(status.tenant_id, "swift-fox-running");
+});
+
+test("logout revokes and removes a saved sign-in for the retired resource", async (t) => {
+  for (const extra of [{ resource: RETIRED_RESOURCE }, { resource: undefined }]) {
+    const { env, home } = fixture(t);
+    const path = authFile(home, extra);
+    let revoked = 0;
+    await logout({ env, stderr: { write() {} }, fetch: async (url, options) => {
+      assert.equal(String(url), "https://cohesivity.ai/oauth/revoke");
+      assert.equal(options.body.get("token"), refreshToken);
+      revoked++;
+      return new Response("");
+    } });
+    assert.equal(revoked, 1);
+    assert.equal(existsSync(path), false);
+  }
 });

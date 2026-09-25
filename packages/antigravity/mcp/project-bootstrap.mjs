@@ -26,7 +26,8 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 export const MANAGEMENT_API_URL = "https://cohesivity.ai/api/";
-export const REMOTE_MCP_URL = "https://cohesivity.ai/mcp/manage";
+export const REMOTE_MCP_URL = "https://cohesivity.ai/mcp";
+const RETIRED_REMOTE_MCP_URL = "https://cohesivity.ai/mcp/manage";
 export const QUICKSTART_URL = "https://cohesivity.ai/quickstart.sh";
 
 export const RESOURCE_NAMES = Object.freeze([
@@ -49,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "4.1.4";
+export const SERVER_VERSION = "5.0.0";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
@@ -716,10 +717,20 @@ function validateAccount(value) {
       !/^mcp_at_[A-Za-z0-9_-]{43}$/u.test(value.access_token ?? "") ||
       !/^mcp_rt_[A-Za-z0-9_-]{43}$/u.test(value.refresh_token ?? "") ||
       !/^[A-Za-z0-9_-]{1,200}$/u.test(value.client_id ?? "") ||
-      !Number.isFinite(value.expires_at) || value.expires_at <= 0) {
+      !Number.isFinite(value.expires_at) || value.expires_at <= 0 ||
+      (value.resource !== undefined && typeof value.resource !== "string")) {
     fail("Local account credentials are invalid. Run login again or logout explicitly; guest fallback is disabled.");
   }
   return value;
+}
+
+// Saved sign-ins are bound to one OAuth resource. Tokens issued for the retired
+// /mcp/manage resource (or saved before the resource was recorded) can no
+// longer authorize anything, so they fail closed with a reauthorization hint
+// instead of refreshing, falling back to guest, or silently becoming /mcp.
+function requireCurrentResource(account) {
+  if (account.resource === REMOTE_MCP_URL) return account;
+  fail(`Saved Cohesivity account sign-in was issued for the retired ${RETIRED_REMOTE_MCP_URL} endpoint. Run project-bootstrap.mjs logout, then project-bootstrap.mjs login to sign in for ${REMOTE_MCP_URL}. Existing .cohesivity projects keep working without sign-in.`);
 }
 
 async function boundedFetch(url, options, fetchImpl, limit = 1024 * 1024) {
@@ -765,8 +776,9 @@ function accountFromResponse(response, clientId) {
   if (!isRecord(response) || !Number.isFinite(response.expires_in) || response.expires_in <= 0 || response.expires_in > 86400) {
     fail("Cohesivity account authentication returned an invalid expiry.");
   }
+  if (response.resource !== REMOTE_MCP_URL) fail("Cohesivity account authentication returned an unexpected resource.");
   return validateAccount({ access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type,
-    principal_type: response.principal_type, client_id: clientId, expires_at: Date.now() + response.expires_in * 1000 });
+    principal_type: response.principal_type, client_id: clientId, resource: response.resource, expires_at: Date.now() + response.expires_in * 1000 });
 }
 
 async function loadAccount(environment, fetchImpl) {
@@ -777,7 +789,7 @@ async function loadAccount(environment, fetchImpl) {
     try { contents = privateRead(path); } catch (error) { if (error?.code === "ENOENT") return undefined; throw error; }
     let account;
     try { account = JSON.parse(contents); } catch { fail("Local account credentials are invalid. Run login again or logout explicitly."); }
-    account = validateAccount(account);
+    account = requireCurrentResource(validateAccount(account));
     if (account.expires_at > Date.now() + 60_000) return account;
     const response = await oauthRequest("token", { grant_type: "refresh_token", client_id: account.client_id,
       refresh_token: account.refresh_token, resource: REMOTE_MCP_URL }, fetchImpl);
