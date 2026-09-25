@@ -668,3 +668,11 @@ The canonical skill, every packaged copy, README, and packaging expectations
 follow. The version moves in `SERVER_VERSION`, `package.json`, and the generated
 manifests. With a non-symlinked `TMPDIR`, 69/70 tests pass before source
 stamping; only archive equality against this source commit is pending.
+
+## 2026-09-25 — Stamp the 5.0.2 install manifest (COH-297)
+
+Pin source/archive commit `ef76ec8b2c6d66a3eb69d0d63c8d096d2c27552a` in the
+9400-byte manifest (SHA-256
+`146985fde9229544da3bd1a8c793c180da8593ccd0a7b44b1a966f5ddea0b731`).
+All 70 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
