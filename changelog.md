@@ -506,3 +506,15 @@ ownership check only for signed-in creation. README only: no package or
 archive content changes, so the 5.0.0 stamp is unchanged. All 68 tests pass.
 
 Refs COH-296
+
+## 2026-09-25 — Re-cut 5.0.0 on skill mirror 8a482782
+
+The bundled skill syncs mirror `8a482782` (`1ea09c29c742`, 25,301 bytes),
+approved after Greptile review: signed-in hosted calls take only `tenant_id`,
+and account creation reuses one `idempotency_key` for retries. The canonical
+skill, every packaged copy, and the v5.0.0 archives are rebuilt from it. The
+earlier 5.0.0 stamps (`2da59bc6`, `72ae1111`) were never referenced by a
+released installer; their commits stay unchanged.
+
+All 67 other tests pass before source stamping; the archive-equality test is
+excluded at this step, as in the previous re-cut.
