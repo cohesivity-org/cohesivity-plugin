@@ -620,3 +620,11 @@ Over real stdio, `get_cohesivity_documentation` returned `offerings/postgres`
 offering and a missing `.cohesivity` both returned structured errors. All 69
 non-archive tests pass. The v5.0.1 archives are re-cut from this commit. The
 earlier 5.0.1 stamp was never released.
+
+## 2026-09-25 — Stamp the re-cut 5.0.1 install manifest (COH-297)
+
+Pin source/archive commit `61b7ff64b4da81dd031475633d188808e3ab8879` in the
+9400-byte manifest (SHA-256
+`f8993a917dc79ee9714aa756b2252e7e08a5d4919551446632604b95e5f4a581`).
+All 70 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
