@@ -518,3 +518,11 @@ released installer; their commits stay unchanged.
 
 All 67 other tests pass before source stamping; the archive-equality test is
 excluded at this step, as in the previous re-cut.
+
+## 2026-09-25 — Stamp the re-cut 5.0.0 install manifest (8a482782 skill)
+
+Pin source/archive commit `f8c7e2ee2927155b3b8485049abbee5cfebb1060` in the
+9400-byte manifest (SHA-256
+`2b7b80aa877ebb46f0c1ff7e99f2a16f21a0621470f2c854a1e8dd7e1f1b2173`).
+All 68 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
