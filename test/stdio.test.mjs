@@ -55,12 +55,13 @@ for (const packageRoot of packageRoots) {
       assert.deepEqual(replies[0].result.capabilities, { tools: { listChanged: false } });
       assert.deepEqual(replies[1].result.tools.map((tool) => tool.name), [
         "create_tenant", "claim_tenant", "tenant_status", "provision_resource", "give_feedback",
+        "get_cohesivity_documentation",
       ]);
       assert.deepEqual(replies[2].result, {});
       assert.equal(replies[3].error.code, -32700);
       assert.deepEqual(replies[4].result, {});
       assert.equal(replies[5].result.isError, true);
-      assert.equal(replies[5].result.content[0].text, "Missing required argument: project_root.");
+      assert.equal(JSON.parse(replies[5].result.content[0].text).message, "Missing required argument: project_root.");
       assert.deepEqual(readdirSync(temporaryRoot), []);
     } finally {
       rmSync(temporaryRoot, { recursive: true, force: true });

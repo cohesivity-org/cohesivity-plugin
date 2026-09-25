@@ -50,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "5.0.0";
+export const SERVER_VERSION = "5.0.1";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
@@ -63,79 +63,57 @@ const MAX_GITIGNORE_BYTES = 1024 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_FEEDBACK_LENGTH = 20_000;
 const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
-const SECRET_VALUE = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/gi;
 const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/i;
-const SECRET_KEY = /(?:authorization|cookie|credential|password|secret|token|(?:^|_)key(?:$|_))/i;
-const SAFE_RESOURCE_IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
-const SAFE_RESOURCE_STATUS = /^[A-Za-z][A-Za-z0-9._ -]{0,79}$/u;
-const SAFE_API_KEYS = new Set([
-  "account",
-  "active",
-  "admission",
-  "already_provisioned",
-  "account_bucket_usage",
-  "approval_url",
-  "bucket_usage",
-  "callback_urls",
-  "capabilities",
-  "code",
-  "created",
-  "created_at",
-  "claimed_at",
-  "compute_limits",
-  "deleted",
-  "deprovisioned",
-  "deploy_endpoint",
-  "deployment_url",
-  "dimensions",
-  "docs_url",
-  "edge_url",
-  "error",
-  "events_endpoint",
-  "events_table",
-  "expires_at",
-  "experiments",
-  "failed_count",
-  "gated_scopes",
-  "kind",
-  "lifecycle",
-  "login_url",
-  "message",
-  "metric",
-  "name",
-  "notifications",
-  "plan",
-  "pause_reason",
-  "paused",
-  "provisioned",
-  "requested_count",
-  "recommended_action",
-  "region",
-  "remaining",
-  "reset_at",
-  "resource",
-  "resources",
-  "results",
-  "runtime_profile",
-  "runtime_is_latest_live",
-  "runtime_is_stable",
-  "runtime_notification",
-  "runtime_supported",
-  "runtime_version",
-  "session_limits",
-  "sessions_url",
-  "severity",
-  "secret_stored",
-  "state",
-  "status",
-  "success",
-  "tenant_id",
-  "tenant_lifecycle",
-  "upgrade_available",
-  "upgrade_target_profile",
-  "tools_url",
-  "write_region",
-]);
+const MANAGEMENT_OUTPUT_FIELDS = Object.freeze({
+  claim: ["approval_url"],
+  status: ["account", "resources", "bucket_usage", "account_bucket_usage", "notifications"],
+  provision: [
+    "success",
+    "resource",
+    "resource_name",
+    "status",
+    "created",
+    "base_url",
+    "endpoint",
+    "edge_url",
+    "deployment_url",
+    "deploy_endpoint",
+    "compute_limits",
+    "region",
+    "primary_region",
+    "database_primary_region",
+    "quota_profile",
+    "already_provisioned",
+    "login_url",
+    "callback_urls",
+    "events_table",
+    "events_endpoint",
+    "dimensions",
+    "metric",
+    "project_name",
+    "vercel_url",
+    "custom_domain",
+    "custom_domain_status",
+    "vanity",
+    "docs_url",
+    "address",
+    "canonical_address",
+    "vanity_address",
+    "retention_days",
+    "max_message_bytes",
+    "max_recipients",
+    "storage_limit_bytes",
+    "postgres",
+    "sessions_url",
+    "tools_url",
+    "session_limits",
+    "admission",
+    "message",
+    "next_steps",
+    "results",
+    "resources",
+  ],
+});
 
 const jsonObjectSchema = {
   type: "object",
@@ -295,6 +273,45 @@ const provisionInputSchema = {
   ],
 };
 
+const DOCUMENTATION_TOOL = Object.freeze({
+  name: "get_cohesivity_documentation",
+  title: "Get Cohesivity documentation",
+  description:
+    "Read a current Cohesivity overview, reference, onboarding guide, pricing guide, offerings catalog, or individual offering document.",
+  inputSchema: {
+    type: "object",
+    required: ["document"],
+    properties: {
+      document: {
+        type: "string",
+        enum: ["docs", "quick-reference", "full-reference", "onboarding", "pricing", "offerings", "offering"],
+      },
+      offering: {
+        type: "string",
+        minLength: 1,
+        maxLength: 64,
+        pattern: "^[a-z0-9][a-z0-9-]*$",
+        description: 'Offering slug. Required only when document is "offering".',
+      },
+    },
+    additionalProperties: false,
+  },
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+});
+const DOCUMENT_PATHS = Object.freeze({
+  docs: "docs",
+  "quick-reference": "llms.txt",
+  "full-reference": "llms-full.txt",
+  onboarding: "onboarding",
+  pricing: "pricing",
+  offerings: "offerings",
+});
+
 export const TOOLS = Object.freeze([
   {
     name: "create_tenant",
@@ -415,15 +432,22 @@ export const TOOLS = Object.freeze([
       openWorldHint: true,
     },
   },
+  DOCUMENTATION_TOOL,
 ]);
 
-class SafeError extends Error {}
+class SafeError extends Error {
+  constructor(message, code = "tool_call_failed", httpStatus = undefined) {
+    super(message);
+    this.code = code;
+    this.httpStatus = httpStatus;
+  }
+}
 
 const isRecord = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-function fail(message) {
-  throw new SafeError(message);
+function fail(message, code, httpStatus) {
+  throw new SafeError(message, code, httpStatus);
 }
 
 function exactObject(value, required, optional = []) {
@@ -584,13 +608,19 @@ function ensureCredentialIgnored(projectRoot) {
 
 function readCredentialFields(projectRoot, requireManagementKey = false) {
   const path = credentialPath(projectRoot);
-  const contents = readRegularFile(
-    path,
-    ".cohesivity",
-    "No readable .cohesivity file exists in project_root.",
-    ".cohesivity is unexpectedly large.",
-    MAX_CREDENTIAL_FILE_BYTES,
-  );
+  let contents;
+  try {
+    contents = readRegularFile(
+      path,
+      ".cohesivity",
+      "No readable .cohesivity file exists in project_root.",
+      ".cohesivity is unexpectedly large.",
+      MAX_CREDENTIAL_FILE_BYTES,
+    );
+  } catch (error) {
+    if (error instanceof SafeError) error.code = "tenant_not_available";
+    throw error;
+  }
 
   const fields = Object.create(null);
   const allowedFields = new Set([
@@ -608,13 +638,13 @@ function readCredentialFields(projectRoot, requireManagementKey = false) {
   }
 
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/u.test(fields.tenant_id ?? "")) {
-    fail(".cohesivity does not contain a valid tenant_id.");
+    fail(".cohesivity does not contain a valid tenant_id.", "tenant_not_available");
   }
   if (
     requireManagementKey &&
     !/^coh_man_[a-z0-9]{20}$/u.test(fields.coh_management_key ?? "")
   ) {
-    fail(".cohesivity does not contain a valid management credential.");
+    fail(".cohesivity does not contain a valid management credential.", "tenant_not_available");
   }
   return fields;
 }
@@ -1049,55 +1079,45 @@ function validateConfiguration(resource, value, optional) {
 }
 
 function redactString(value) {
-  const redacted = value.replace(SECRET_VALUE, "[REDACTED]");
-  if (redacted.length > 2000) return `${redacted.slice(0, 2000)}…`;
-  return redacted;
+  return value
+    .replace(/(?:coh_(?:man|app)|mcp_(?:at|rt|ac))_[A-Za-z0-9._~-]+/g, "[redacted]")
+    .replace(/\b(?:whsec_|sk-|ghp_|xox[baprs]-)[A-Za-z0-9._~-]+/g, "[redacted]")
+    .replace(/Bearer\s+[^\s"']+/gi, "Bearer [redacted]")
+    .replace(/([?&](?:key|token|secret|password|authorization|api_?key|access_token|refresh_token)=)[^&#\s]+/gi, "$1[redacted]")
+    .replace(/\b([a-z][a-z0-9+.-]*:\/\/)(?:[^/@\s:]+(?::[^/@\s]*)?@)/gi, "$1[redacted]@")
+    .replace(/\b(password|pwd|pass|user\s*id|uid|access\s*token|refresh\s*token)\s*=\s*[^;\s]+/gi, "$1=[redacted]")
+    .replace(/-----BEGIN [^-]+ PRIVATE KEY-----[\s\S]*?-----END [^-]+ PRIVATE KEY-----/g, "[redacted private key]");
 }
 
-export function redactApiOutput(value, depth = 0) {
-  if (depth > 8) return undefined;
-  if (value === null || typeof value === "boolean" || typeof value === "number") {
-    return value;
-  }
+function sensitiveKey(key, path = []) {
+  return /^(?:coh_management_key|coh_application_key|management_key|application_key|access_token|refresh_token|feedback_token|quote_token|approval_token|auth_header|authorization|secret|password|credentials?|config_enc|device_code_enc|raw|details|metadata|logs?|events_raw|command|claude_web|code|value)$/i.test(key)
+    || /^(?:(?:connection|database|postgres|redis|jdbc)[_-]?(?:string|uri|url)|credentials?[_-]?(?:uri|url)|dsn)$/i.test(key)
+    || /(?:^|_)(?:api_key|private_key|client_secret|provider_secret|bot_token|wait_token|verification_token|verification_code)(?:_|$)/i.test(key)
+    || /(?:^|_)(?:feedback|approval|wait|verification|redemption|discount)_(?:token|code|capability)(?:_|$)/i.test(key)
+    || (path.length > 0 && (/^(?:approval|checkout_url|operation_handle|redemption|verification|wait)$/i.test(key)
+      || /(?:^|_)(?:feedback|approval|wait|verification|redemption|discount)_(?:url|uri|handle)(?:_|$)/i.test(key)));
+}
+
+export function safeValue(value, path = []) {
   if (typeof value === "string") return redactString(value);
-  if (Array.isArray(value)) return value.slice(0, 200).map((child) => redactApiOutput(child, depth + 1));
-  if (!isRecord(value)) return undefined;
-
-  const output = {};
-  for (const key of Object.keys(value).sort()) {
-    if (SECRET_KEY.test(key) || !SAFE_API_KEYS.has(key)) continue;
-    const child = redactApiOutput(value[key], depth + 1);
-    if (child !== undefined) output[key] = child;
+  if (Array.isArray(value)) return value.map((child, index) => safeValue(child, [...path, index]));
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (sensitiveKey(key, path)) continue;
+    out[redactString(key)] = safeValue(child, [...path, key]);
   }
-  return output;
+  return out;
 }
 
-function projectTenantStatus(value) {
-  if (!isRecord(value)) return redactApiOutput(value);
-
-  const outer = { ...value };
-  delete outer.resources;
-  const output = redactApiOutput(outer);
-  if (!Array.isArray(value.resources)) return output;
-
-  output.resources = value.resources.slice(0, 200).flatMap((entry) => {
-    if (!isRecord(entry)) return [];
-    const projected = {};
-    for (const key of ["name", "resource", "resource_name", "service"]) {
-      if (
-        typeof entry[key] === "string" &&
-        entry[key].length <= 80 &&
-        SAFE_RESOURCE_IDENTIFIER.test(entry[key])
-      ) {
-        projected[key] = entry[key];
-      }
-    }
-    if (typeof entry.status === "string" && SAFE_RESOURCE_STATUS.test(entry.status)) {
-      projected.status = entry.status;
-    }
-    return Object.keys(projected).length === 0 ? [] : [projected];
-  });
-  return output;
+function projectDto(dto) {
+  const fields = new Set(MANAGEMENT_OUTPUT_FIELDS[dto]);
+  return (raw) =>
+    safeValue(
+      Object.fromEntries(
+        Object.entries(isRecord(raw) ? raw : {}).filter(([key, value]) => fields.has(key) && value !== undefined),
+      ),
+    );
 }
 
 async function managementRequest(
@@ -1106,12 +1126,12 @@ async function managementRequest(
   path,
   body,
   fetchImpl,
-  projectOutput = redactApiOutput,
+  projectOutput,
 ) {
   const credentials = readCredentialFields(projectRoot, true);
   const url = new URL(path, MANAGEMENT_API_URL);
   if (url.origin !== new URL(MANAGEMENT_API_URL).origin || !url.pathname.startsWith("/api/")) {
-    fail("Invalid Cohesivity Management API path.");
+    fail("Invalid Cohesivity Management API path.", "management_operation_failed");
   }
 
   let response;
@@ -1129,33 +1149,66 @@ async function managementRequest(
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    fail("The Cohesivity Management API request failed.");
+    fail("The Cohesivity Management API request failed.", "management_operation_failed");
   }
 
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity Management API response is unexpectedly large.");
+    fail("The Cohesivity Management API response is unexpectedly large.", "management_operation_failed");
   }
   const text = await response.text();
   if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
-    fail("The Cohesivity Management API response is unexpectedly large.");
+    fail("The Cohesivity Management API response is unexpectedly large.", "management_operation_failed");
   }
   let document = {};
   if (text.length > 0) {
     try {
       document = JSON.parse(text);
     } catch {
-      fail("The Cohesivity Management API returned an invalid response.");
+      fail("The Cohesivity Management API returned an invalid response.", "management_operation_failed");
     }
   }
   if (!response.ok) {
-    const code =
-      isRecord(document) && typeof document.error === "string" && /^[a-z0-9_-]{1,80}$/u.test(document.error)
-        ? ` (${document.error})`
-        : "";
-    fail(`The Cohesivity Management API returned HTTP ${response.status}${code}.`);
+    const message = isRecord(document) ? document.message || document.error : undefined;
+    fail(
+      message ? String(message) : "The management operation failed.",
+      "management_operation_failed",
+      response.status,
+    );
   }
   return projectOutput(document);
+}
+
+// Fetches one fixed public Cohesivity page. The offering slug only selects a
+// path under /offerings/, never a caller-supplied URL.
+export async function readDocument(argumentsValue, fetchImpl = globalThis.fetch) {
+  const args = exactObject(argumentsValue, ["document"], ["offering"]);
+  let path = Object.hasOwn(DOCUMENT_PATHS, args.document) ? DOCUMENT_PATHS[args.document] : undefined;
+  if (args.document === "offering") {
+    if (typeof args.offering !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(args.offering)) {
+      fail("The offering field is required for an offering document.");
+    }
+    path = `offerings/${args.offering}`;
+  } else if (path === undefined || args.offering !== undefined) {
+    fail("Unknown document. Use one of the values advertised by tools/list.");
+  }
+  const url = new URL(path, "https://cohesivity.ai/").href;
+  let response;
+  let text;
+  try {
+    response = await fetchImpl(url, {
+      redirect: "error",
+      headers: { Accept: "text/markdown, text/plain", "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(30_000),
+    });
+    text = await response.text();
+  } catch {
+    fail(`Documentation could not be fetched from ${url}.`);
+  }
+  if (!response.ok || Buffer.byteLength(text) > MAX_RESPONSE_BYTES) {
+    fail(`Documentation was not found at ${url}.`);
+  }
+  return { text, url };
 }
 
 export async function callTool(name, argumentsValue, dependencies = {}) {
@@ -1182,21 +1235,30 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
     if (args.confirmed !== true) fail("confirmed must be true after explicit user authorization.");
     const projectRoot = validateProjectRoot(args.project_root);
     const credentials = readCredentialFields(projectRoot, true);
-    const response = await managementRequest(projectRoot, "POST", "claim/url", undefined, fetchImpl);
+    const response = await managementRequest(
+      projectRoot,
+      "POST",
+      "claim/url",
+      undefined,
+      fetchImpl,
+      projectDto("claim"),
+    );
     const approvalUrl = response.approval_url;
     let parsed;
     try {
       parsed = new URL(approvalUrl);
     } catch {
-      fail("The Cohesivity Management API did not return a safe approval URL.");
+      fail("The claim operation did not return a safe approval URL.", "invalid_management_response");
     }
     if (
       parsed.origin !== "https://cohesivity.ai" ||
       !/^\/c\/[A-Za-z0-9_-]+$/u.test(parsed.pathname) ||
+      parsed.username ||
+      parsed.password ||
       parsed.search ||
       parsed.hash
     ) {
-      fail("The Cohesivity Management API did not return a safe approval URL.");
+      fail("The claim operation did not return a safe approval URL.", "invalid_management_response");
     }
     return { tenant_id: credentials.tenant_id, approval_url: approvalUrl };
   }
@@ -1211,7 +1273,7 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       "status",
       undefined,
       fetchImpl,
-      projectTenantStatus,
+      projectDto("status"),
     );
     return { tenant_id: credentials.tenant_id, status };
   }
@@ -1256,7 +1318,14 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
         }
       }
 
-      const result = await managementRequest(projectRoot, "POST", "resources", body, fetchImpl);
+      const result = await managementRequest(
+        projectRoot,
+        "POST",
+        "resources",
+        body,
+        fetchImpl,
+        projectDto("provision"),
+      );
       return { resources, result };
     }
 
@@ -1275,6 +1344,7 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
       `resources/${resource}`,
       configuration,
       fetchImpl,
+      projectDto("provision"),
     );
     return { resource, result };
   }
@@ -1303,15 +1373,23 @@ export async function callTool(name, argumentsValue, dependencies = {}) {
         },
       );
     } catch {
-      fail("The Cohesivity feedback request failed.");
+      fail("Feedback submission could not be confirmed.", "feedback_submission_failed");
     }
   }
 
   fail(`Unknown tool: ${name}.`);
 }
 
-function safeErrorMessage(error) {
-  return error instanceof SafeError ? redactString(error.message) : "The tool call failed safely.";
+function toolError(error) {
+  const value =
+    error instanceof SafeError
+      ? {
+          error: error.code,
+          ...(error.httpStatus === undefined ? {} : { http_status: error.httpStatus }),
+          message: redactString(error.message),
+        }
+      : { error: "tool_call_failed", message: "The tool call failed safely." };
+  return JSON.stringify(value, null, 2);
 }
 
 export async function handleRequest(request, dependencies = {}) {
@@ -1341,8 +1419,20 @@ export async function handleRequest(request, dependencies = {}) {
       const params = exactObject(request.params, ["name"], ["arguments", "_meta"]);
       if (params._meta !== undefined && !isRecord(params._meta)) fail("_meta must be an object.");
       if (typeof params.name !== "string") fail("Tool name must be a string.");
+      if (params.name === DOCUMENTATION_TOOL.name) {
+        const { text, url } = await readDocument(params.arguments ?? {}, dependencies.fetch);
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            content: [{ type: "text", text }],
+            structuredContent: { url, contentType: "text/markdown" },
+            isError: false,
+          },
+        };
+      }
       const result = await callTool(params.name, params.arguments ?? {}, dependencies);
-      const text = JSON.stringify(result);
+      const text = JSON.stringify(result, null, 2);
       if (SECRET_DETECT.test(text)) throw new Error("secret reached the MCP output boundary");
       return {
         jsonrpc: "2.0",
@@ -1358,7 +1448,7 @@ export async function handleRequest(request, dependencies = {}) {
         id: request.id,
         result: {
           isError: true,
-          content: [{ type: "text", text: safeErrorMessage(error) }],
+          content: [{ type: "text", text: toolError(error) }],
         },
       };
     }
@@ -1404,7 +1494,9 @@ if (isMain) {
     : command === "logout" && process.argv.length === 3 ? logout
     : () => fail("Usage: project-bootstrap.mjs [login|logout]");
   Promise.resolve().then(run).catch((error) => {
-    if (command !== undefined) process.stderr.write(`${safeErrorMessage(error)}\n`);
+    if (command !== undefined) process.stderr.write(
+      `${error instanceof SafeError ? redactString(error.message) : "The command failed safely."}\n`,
+    );
     process.exitCode = 1;
   });
 }

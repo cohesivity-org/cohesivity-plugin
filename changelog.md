@@ -547,3 +547,103 @@ Pin source/archive commit `32a8134bd7bfd69929d59670a625bfb031aa092b` in the
 `97afafe1fdd02f1a301bc09e68ce2284b7c1cc3b0d5b1c4062e1234194d537e6`).
 All 68 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Local MCP returns the same fields as the hosted MCP (5.0.1, COH-297)
+
+A Dexto agent provisioned `railway-hosting` through the local MCP and then made
+5 blind polling attempts and 3 deploy attempts, 12 of its 35 tool calls,
+because the response never included `next_steps`. The local MCP filtered every
+API response through `SAFE_API_KEYS`, one flat allowlist of 66 keys applied at
+every depth. That list lacked `next_steps`, `base_url`, `endpoint`, `address`,
+`primary_region`, `quota_profile`, `custom_domain`, and other operational
+fields the hosted MCP already returns.
+
+COH-297 proposed a pure deny-list, on the belief that the hosted MCP uses one.
+It doesn't. `projectDto` in `worker/src/mcp-management.js` first keeps the
+per-tool top-level fields in `MANAGEMENT_OUTPUT_FIELDS`, then runs
+`sensitiveKey()` and `redactString()` over nested values. We chose to match the
+hosted MCP instead, so an agent sees the same response from both, and the
+security posture stays the one already in production.
+
+`mcp/project-bootstrap.mjs` now carries a copy of `MANAGEMENT_OUTPUT_FIELDS`,
+`sensitiveKey()`, and `redactString()` from the hosted MCP, applied through
+`projectDto(dto)` for claim, status, and provision. This removes
+`SAFE_API_KEYS`, `SECRET_KEY`, `SECRET_VALUE`, `projectTenantStatus`, and the
+depth, array, and string-length caps. So `tenant_status` now returns resource
+details, and `account.owner_user_id`, the same as the hosted MCP.
+Management API errors now include the API's `message`, as the hosted MCP does,
+instead of just the HTTP status. `claim_tenant` also rejects approval URLs that
+contain a username or password, as the hosted MCP does. Tool descriptions are
+unchanged. The field list now exists in both repos, so a new hosted field must
+also be added here.
+
+The version moves to 5.0.1 because published `@cohesivity/init@0.9.0` pins the
+5.0.0 manifest. The new tests cover `next_steps` passthrough, dropping
+credential-named nested fields, and forwarding the error message. All 67
+non-archive tests pass. The two archive tests need the source-commit stamp that
+follows.
+
+## 2026-09-25 — Stamp the 5.0.1 install manifest (COH-297)
+
+Pin source/archive commit `7440aa050302821ff41e6e69e404af548831a09f` in the
+9400-byte manifest (SHA-256
+`69c65a6c72e88e7f5ba862416922d7a4e1becdd4540320be473512003a574366`).
+All 69 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Local MCP gets the docs tool and the hosted MCP's error shape (5.0.1 re-cut, COH-297)
+
+The local MCP now has `get_cohesivity_documentation`, copied from the hosted
+MCP with the same name, schema, description, and annotations. It fetches one
+fixed public page on `https://cohesivity.ai` (`docs`, `llms.txt`,
+`llms-full.txt`, `onboarding`, `pricing`, `offerings`, or
+`offerings/<slug>`) with `redirect: "error"` and the 2 MiB response cap. It
+returns the page text with `structuredContent: { url, contentType }`, like the
+hosted tool. It skips the `SECRET_DETECT` output check, because the public docs
+contain `Bearer $KEY` examples. Checked against production, `llms.txt` has 9
+matches and `llms-full.txt` has 74.
+
+Tool errors now use the hosted MCP's shape, `{ "error", "http_status"?,
+"message" }` as JSON text. `SafeError` carries a code. Management API failures
+return `management_operation_failed` with `http_status` and the API's
+`message`. A bad claim URL returns `invalid_management_response`, feedback
+failures return `feedback_submission_failed`, and a missing or invalid
+`.cohesivity` returns `tenant_not_available`. Every other failure returns
+`tool_call_failed`. Successful results are pretty-printed like the hosted MCP.
+Existing tool descriptions are unchanged. The public skill still lists five
+tools, which matches the hosted MCP, where the skill also leaves out the docs
+tool. So the skill-parity test now checks the five tenant tools and allows the
+docs tool.
+
+Over real stdio, `get_cohesivity_documentation` returned `offerings/postgres`
+(6,897 bytes) and `llms-full.txt` (200,887 bytes) from production. A missing
+offering and a missing `.cohesivity` both returned structured errors. All 69
+non-archive tests pass. The v5.0.1 archives are re-cut from this commit. The
+earlier 5.0.1 stamp was never released.
+
+## 2026-09-25 — Stamp the re-cut 5.0.1 install manifest (COH-297)
+
+Pin source/archive commit `61b7ff64b4da81dd031475633d188808e3ab8879` in the
+9400-byte manifest (SHA-256
+`f8993a917dc79ee9714aa756b2252e7e08a5d4919551446632604b95e5f4a581`).
+All 70 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
+
+## 2026-09-25 — Reject inherited document names in the local docs tool (5.0.1 re-cut, COH-297)
+
+Greptile on PR #24 found that `get_cohesivity_documentation` accepted
+`document: "__proto__"`. It resolved the inherited object and fetched
+`https://cohesivity.ai/[object%20Object]`. The lookup now requires an own key
+in `DOCUMENT_PATHS`, and the docs-tool test covers `__proto__`. We dismissed
+Greptile's other finding, that a nested status resource named `token` or
+`apiKey` would reach the agent. `worker/src/status.js` builds each resource
+entry from fixed non-secret fields, and the hosted MCP applies the same filter.
+The v5.0.1 archives are re-cut from this commit.
+
+## 2026-09-25 — Stamp the re-cut 5.0.1 install manifest after the docs-tool fix (COH-297)
+
+Pin source/archive commit `cd0230e23e496a0a17fbbec8770659ed1c1d8939` in the
+9400-byte manifest (SHA-256
+`63c556e7f98fbe8d76dd7ff7fbe6ddf2b3df2a8f34239b4cef66785ca7820698`).
+All 70 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
