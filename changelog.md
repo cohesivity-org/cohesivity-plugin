@@ -639,3 +639,11 @@ Greptile's other finding, that a nested status resource named `token` or
 `apiKey` would reach the agent. `worker/src/status.js` builds each resource
 entry from fixed non-secret fields, and the hosted MCP applies the same filter.
 The v5.0.1 archives are re-cut from this commit.
+
+## 2026-09-25 — Stamp the re-cut 5.0.1 install manifest after the docs-tool fix (COH-297)
+
+Pin source/archive commit `cd0230e23e496a0a17fbbec8770659ed1c1d8939` in the
+9400-byte manifest (SHA-256
+`63c556e7f98fbe8d76dd7ff7fbe6ddf2b3df2a8f34239b4cef66785ca7820698`).
+All 70 tests pass, along with generated checks. Only the manifest changed in
+this step; prior artifacts remain unchanged.
