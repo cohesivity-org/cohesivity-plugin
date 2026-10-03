@@ -721,3 +721,13 @@ The package README, `.codexignore`, and lockfile were requested alongside it.
   errors, and its generator resolves `packages/codex/plugins/cohesivity` and
   mirrors the icon, README, and `.codexignore`.
 - `git diff --check` passes. No tenant or resource was created.
+
+## 2026-10-03 — Stamp the 5.0.3 install manifest
+
+Pin source/archive commit `8bf5d12b3e9e360c838618673ac898220580ad81` in the
+10,607-byte manifest (SHA-256
+`cc78a1b53010545b0a6d27b82ec3e36529aac632d381a53a0d520eaa86a7662d`). The
+packaging tests now copy `assets/icon.svg` into the deterministic-build fixture
+and expect the 5.0.3 README wording. All 71 tests pass on Node 24.18.0, along
+with `npm run check`; Node 18 is left to CI. Only the manifest, tests, and
+changelog changed in this step; no archive changed.

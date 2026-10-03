@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import {
+  ICON_SOURCE,
   LOCAL_MCP_SOURCE,
   MCP_ENDPOINT,
   SKILL_SHA256,
@@ -366,6 +367,8 @@ test("tracked generated artifacts are current and deterministic", () => {
     );
     mkdirSync(join(temporaryRoot, "mcp"), { recursive: true });
     cpSync(LOCAL_MCP_SOURCE, join(temporaryRoot, LOCAL_MCP_SOURCE));
+    mkdirSync(join(temporaryRoot, "assets"), { recursive: true });
+    cpSync(ICON_SOURCE, join(temporaryRoot, ICON_SOURCE));
     writeFileSync(join(temporaryRoot, ".mcp.json"), "stale client marker\n");
 
     build(temporaryRoot);
@@ -906,8 +909,8 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.1/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.2\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.2 and initializer\n0\.9\.1/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.3\/`/);
+  assert.match(readme, /The current plugin source is 5\.0\.3; its operating behavior matches 5\.0\.2/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
