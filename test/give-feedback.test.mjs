@@ -59,7 +59,7 @@ test("give_feedback sends only trimmed text to the fixed endpoint and projects o
         assert.equal(options.headers["Content-Type"], "application/json");
         assert.ok(options.signal instanceof AbortSignal);
         assert.deepEqual(JSON.parse(options.body), { feedback: feedback.trim() });
-        assert.doesNotMatch(JSON.stringify(options), /private-.*-marker|local-file-marker|project_root|swift-fox-running/);
+        assert.doesNotMatch(JSON.stringify(options), /private-.*-marker|sample-env-marker|local-file-marker|project_root|swift-fox-running/);
         return response({
           success: true, accepted_for_discount: false,
           feedback_rejection_message: "Rewrite feedback to receive a discount",

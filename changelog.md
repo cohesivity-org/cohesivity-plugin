@@ -751,7 +751,9 @@ values that its generic secret patterns match (`SECRET:` env markers,
 values now start with `sample-`, which the scanner treats as illustrative. The
 fifth was the FIFO test's child program, written as a template literal a few
 characters before `spawnSync`; it is now built from joined strings. Each test
-asserts the same behavior as before.
+asserts the same behavior as before; the feedback request leak check now
+names `sample-env-marker` explicitly, since it no longer matches `private-.*-marker`
+(Greptile, PR #27).
 
 Tests only. No package, archive, skill, local MCP, or version changed. With the
 change the same scanner reports no high or critical findings (89/100), all 72
