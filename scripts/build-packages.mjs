@@ -27,11 +27,71 @@ const DESCRIPTION =
   "Cohesivity backend infrastructure skill with local project bootstrap and a public remote MCP for documentation and management, with optional account OAuth.";
 const MARKETPLACE_DESCRIPTION =
   "cohesivity.ai offers free agent native backend services. Annonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. topups through x402.";
+const LISTING_DESCRIPTION =
+  "cohesivity.ai offers free agent native backend services. Anonymous account (no-signup) to get started through MCP or API. Hosting, postgres, email, storage, containers, LLMs, voice and third-party APIs. Includes free tiers and 5 USD/mo in AI and Search credits. Top-ups through x402.";
 const AUTHOR = {
   name: "Cohesivity",
   email: "smj@cohesivity.ai",
   url: "https://cohesivity.ai",
 };
+export const ICON_SOURCE = "assets/icon.svg";
+const ICON_PATH = `./${ICON_SOURCE}`;
+const MAX_ICON_BYTES = 50 * 1024;
+const MAX_DEFAULT_PROMPTS = 3;
+const MAX_DEFAULT_PROMPT_LENGTH = 128;
+// OpenAI presentation metadata for the Plugins Directory shared by ChatGPT and
+// Codex. Field names follow Codex's .codex-plugin/plugin.json interface.
+const OPENAI_INTERFACE = {
+  displayName: "Cohesivity",
+  shortDescription: "Agent-provisioned backend: Postgres, hosting, auth, storage, email and AI APIs",
+  longDescription: LISTING_DESCRIPTION,
+  developerName: "Cohesivity",
+  category: "Developer Tools",
+  capabilities: ["Interactive", "Read", "Write"],
+  websiteURL: "https://cohesivity.ai",
+  privacyPolicyURL: "https://cohesivity.ai/privacy",
+  termsOfServiceURL: "https://cohesivity.ai/terms",
+  defaultPrompt: [
+    "Use Cohesivity to add a Postgres database to this project",
+    "Use Cohesivity to deploy this app",
+    "Use Cohesivity to add login and an email inbox to this app",
+  ],
+  brandColor: "#0f0f0f",
+  composerIcon: ICON_PATH,
+  logo: ICON_PATH,
+};
+const CODEX_IGNORE = [
+  "# Files Codex does not need from the Cohesivity plugin package.",
+  ".DS_Store",
+  "*.log",
+  "node_modules/",
+  ".cohesivity",
+  "",
+].join("\n");
+const CODEX_README = `# Cohesivity plugin for Codex
+
+${LISTING_DESCRIPTION}
+
+This package is generated from
+[cohesivity-org/cohesivity-plugin](https://github.com/cohesivity-org/cohesivity-plugin);
+do not edit it directly. It contains:
+
+- \`skills/cohesivity/SKILL.md\`: the Cohesivity agent skill.
+- \`.mcp.json\`: the hosted MCP server at \`${MCP_ENDPOINT}\` and the local
+  \`cohesivity-local\` stdio server.
+- \`mcp/project-bootstrap.mjs\`: the dependency-free local MCP server. It needs
+  Node 18 or newer and no Cohesivity account.
+
+The hosted MCP needs no account, token, or registration; account sign-in is
+optional. Every mutation except feedback requires an explicit \`confirmed: true\`
+from the current user request.
+
+Project credentials live in \`.cohesivity\`, which must stay out of version
+control. Report vulnerabilities through the repository's
+[SECURITY.md](https://github.com/cohesivity-org/cohesivity-plugin/blob/main/SECURITY.md).
+
+Documentation: <https://cohesivity.ai/llms.txt>. License: MIT.
+`;
 const KEYWORDS = ["backend", "infrastructure", "database", "hosting", "auth"];
 const CLAUDE_SKILL_METADATA = [
   "allowed-tools: Read, WebFetch, mcp__cohesivity, mcp__cohesivity-local",
@@ -180,6 +240,7 @@ const openAiManifest = {
   ...manifestMetadata,
   skills: "./skills/",
   mcpServers: "./.mcp.json",
+  interface: OPENAI_INTERFACE,
 };
 
 const openAiMcp = {
@@ -285,6 +346,12 @@ export function expectedFiles(root = ROOT) {
   const claudeSkill = buildClaudeSkill(skill);
   const license = readFileSync(resolve(root, "LICENSE"));
   const localMcp = readFileSync(resolve(root, LOCAL_MCP_SOURCE));
+  const icon = readFileSync(resolve(root, ICON_SOURCE));
+  const codexExtras = {
+    [ICON_SOURCE]: icon,
+    ".codexignore": Buffer.from(CODEX_IGNORE),
+    "README.md": Buffer.from(CODEX_README),
+  };
   const files = new Map([
     ["plugin.json", Buffer.from(json(portableManifest))],
     ["mcp.json", Buffer.from(json(portableMcp))],
@@ -321,6 +388,11 @@ export function expectedFiles(root = ROOT) {
     for (const [path, contents] of Object.entries(clientFiles)) {
       files.set(`${packageRoot}/${path}`, Buffer.from(contents));
     }
+    if (client === "openai") {
+      for (const [path, contents] of Object.entries(codexExtras)) {
+        files.set(`${packageRoot}/${path}`, contents);
+      }
+    }
   }
 
   const codexPluginRoot = "packages/codex/plugins/cohesivity";
@@ -330,6 +402,9 @@ export function expectedFiles(root = ROOT) {
   files.set(`${codexPluginRoot}/${LOCAL_MCP_SOURCE}`, localMcp);
   files.set(`${codexPluginRoot}/.codex-plugin/plugin.json`, Buffer.from(json(openAiManifest)));
   files.set(`${codexPluginRoot}/.mcp.json`, Buffer.from(json(openAiMcp)));
+  for (const [path, contents] of Object.entries(codexExtras)) {
+    files.set(`${codexPluginRoot}/${path}`, contents);
+  }
 
   return files;
 }
@@ -410,6 +485,65 @@ function validatePortableMcp(mcp) {
   }
 }
 
+// Packaged icons render in clients that may fetch nothing else, so an icon may
+// reference only fragments inside itself.
+export function svgSelfContainmentProblem(svg) {
+  const rules = [
+    [/<(?:image|script|foreignObject|iframe|object|embed)\b/i, "embedded raster, script, or foreign content"],
+    [/\bon[a-z]+\s*=/i, "event handler attribute"],
+    [/\b(?:xlink:)?href\s*=\s*(["'])\s*(?!#)/i, "href to anything but an internal #fragment"],
+    [/\burl\(\s*(["']?)\s*(?!#)/i, "CSS url() to anything but an internal #fragment"],
+    [/@import\b/i, "CSS @import"],
+    [/data:/i, "data URL"],
+  ];
+  for (const [pattern, description] of rules) {
+    if (pattern.test(svg)) return description;
+  }
+  return undefined;
+}
+
+function validateOpenAiInterface(files, packageRoot, manifest) {
+  const label = `${packageRoot}/.codex-plugin/plugin.json interface`;
+  const value = manifest.interface;
+  assert(isRecord(value), `${label} must be an object`);
+  for (const key of ["displayName", "shortDescription", "longDescription", "developerName", "category"]) {
+    assert(typeof value[key] === "string" && value[key].trim() !== "", `${label}.${key} must be a non-empty string`);
+  }
+  for (const key of ["websiteURL", "privacyPolicyURL", "termsOfServiceURL"]) {
+    const url = new URL(value[key]);
+    assert(url.protocol === "https:" && url.hostname === "cohesivity.ai", `${label}.${key} must be a cohesivity.ai HTTPS URL`);
+  }
+  assert(
+    Array.isArray(value.capabilities) &&
+      value.capabilities.length > 0 &&
+      value.capabilities.every((capability) => typeof capability === "string" && capability.length > 0),
+    `${label}.capabilities must be a non-empty list of strings`,
+  );
+  assert(
+    Array.isArray(value.defaultPrompt) &&
+      value.defaultPrompt.length > 0 &&
+      value.defaultPrompt.length <= MAX_DEFAULT_PROMPTS &&
+      value.defaultPrompt.every(
+        (prompt) => typeof prompt === "string" && prompt.length > 0 && prompt.length <= MAX_DEFAULT_PROMPT_LENGTH,
+      ),
+    `${label}.defaultPrompt must hold 1-${MAX_DEFAULT_PROMPTS} prompts of at most ${MAX_DEFAULT_PROMPT_LENGTH} characters`,
+  );
+  assert(/^#[0-9a-f]{6}$/i.test(value.brandColor), `${label}.brandColor must be a hex color`);
+  for (const key of ["composerIcon", "logo"]) {
+    assert(value[key] === ICON_PATH, `${label}.${key} must be ${ICON_PATH}`);
+  }
+  const icon = files.get(`${packageRoot}/${ICON_SOURCE}`);
+  assert(icon, `${packageRoot} is missing ${ICON_SOURCE}`);
+  assert(icon.length <= MAX_ICON_BYTES, `${packageRoot}/${ICON_SOURCE} exceeds ${MAX_ICON_BYTES} bytes`);
+  const svg = icon.toString("utf8");
+  assert(/^<svg[\s>]/.test(svg) && svg.trimEnd().endsWith("</svg>"), `${ICON_SOURCE} must be a plain SVG document`);
+  const problem = svgSelfContainmentProblem(svg);
+  assert(!problem, `${ICON_SOURCE} must be self-contained: ${problem}`);
+  for (const path of [".codexignore", "README.md"]) {
+    assert(files.has(`${packageRoot}/${path}`), `${packageRoot} is missing ${path}`);
+  }
+}
+
 function validateNativeArtifacts(files) {
   const parse = (path) => JSON.parse(files.get(path).toString("utf8"));
   const claude = parse("packages/claude/.claude-plugin/plugin.json");
@@ -441,6 +575,7 @@ function validateNativeArtifacts(files) {
   assert(openAi.skills === "./skills/", "OpenAI manifest has the wrong skills path");
   assert(openAi.mcpServers === "./.mcp.json", "OpenAI manifest has the wrong MCP path");
   assert(openAi.apps === undefined, "OpenAI manifest must not invent an app registration");
+  validateOpenAiInterface(files, "packages/openai", openAi);
   validateEndpoint(parse("packages/openai/.mcp.json").cohesivity.url, "OpenAI MCP server");
 
   const codexMarketplacePath = "packages/codex/.agents/plugins/marketplace.json";
@@ -457,6 +592,7 @@ function validateNativeArtifacts(files) {
   assert(codexPlugin.skills === "./skills/", "Codex marketplace plugin has the wrong skills path");
   assert(codexPlugin.mcpServers === "./.mcp.json", "Codex marketplace plugin has the wrong MCP path");
   assert(codexPlugin.apps === undefined, "Codex marketplace plugin must not invent an app registration");
+  validateOpenAiInterface(files, "packages/codex/plugins/cohesivity", codexPlugin);
   validateEndpoint(
     parse("packages/codex/plugins/cohesivity/.mcp.json").cohesivity.url,
     "Codex marketplace MCP server",

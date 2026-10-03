@@ -16,6 +16,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import {
+  ICON_SOURCE,
+  svgSelfContainmentProblem,
   LOCAL_MCP_SOURCE,
   MCP_ENDPOINT,
   SKILL_SHA256,
@@ -66,7 +68,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.0.2");
+  assert.equal(VERSION, "5.0.3");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -300,6 +302,62 @@ test("native wrapper package roots use each client's remote MCP shape", () => {
   );
 });
 
+test("packaged icons must be self-contained SVG", () => {
+  const wrap = (body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`;
+  for (const body of [
+    '<rect width="10" height="10"/>',
+    '<defs><linearGradient id="g"/></defs><rect fill="url(#g)"/>',
+    '<use href="#mark"/>',
+    "<use xlink:href='#mark'/>",
+  ]) {
+    assert.equal(svgSelfContainmentProblem(wrap(body)), undefined, body);
+  }
+  for (const body of [
+    '<use href="https://example.com/sprite.svg#mark"/>',
+    '<use xlink:href="//example.com/sprite.svg#mark"/>',
+    '<rect style="fill: url(https://example.com/p.svg#x)"/>',
+    "<rect fill=\"url('https://example.com/p.svg#x')\"/>",
+    '<style>@import "https://example.com/a.css";</style>',
+    '<image href="#x"/>',
+    '<script>1</script>',
+    '<foreignObject></foreignObject>',
+    '<rect onload="x()"/>',
+    '<rect fill="url(data:image/png;base64,AA)"/>',
+  ]) {
+    assert.ok(svgSelfContainmentProblem(wrap(body)), body);
+  }
+});
+
+test("OpenAI and Codex plugin roots carry presentation metadata and an icon", () => {
+  const icon = readFileSync("assets/icon.svg");
+  for (const root of ["packages/openai", "packages/codex/plugins/cohesivity"]) {
+    const manifest = json(`${root}/.codex-plugin/plugin.json`);
+    const ui = manifest.interface;
+    assert.equal(ui.displayName, "Cohesivity");
+    assert.equal(ui.developerName, "Cohesivity");
+    assert.equal(ui.category, "Developer Tools");
+    assert.deepEqual(ui.capabilities, ["Interactive", "Read", "Write"]);
+    assert.equal(ui.composerIcon, "./assets/icon.svg");
+    assert.equal(ui.logo, "./assets/icon.svg");
+    assert.match(ui.longDescription, /^cohesivity\.ai offers free agent native backend services\. Anonymous account/);
+    assert.ok(ui.shortDescription.length > 0);
+    assert.ok(ui.defaultPrompt.length >= 1 && ui.defaultPrompt.length <= 3);
+    for (const prompt of ui.defaultPrompt) assert.ok(prompt.length <= 128);
+    assert.deepEqual(readFileSync(`${root}/assets/icon.svg`), icon);
+    assert.ok(icon.length <= 50 * 1024);
+    assert.equal(svgSelfContainmentProblem(icon.toString("utf8")), undefined);
+    assert.match(readFileSync(`${root}/README.md`, "utf8"), /^# Cohesivity plugin for Codex$/m);
+    assert.match(readFileSync(`${root}/.codexignore`, "utf8"), /^\.cohesivity$/m);
+  }
+  assert.deepEqual(
+    json("packages/codex/plugins/cohesivity/.codex-plugin/plugin.json"),
+    json("packages/openai/.codex-plugin/plugin.json"),
+  );
+  for (const root of ["packages/claude", "packages/gemini", "packages/antigravity"]) {
+    assert.equal(existsSync(`${root}/assets/icon.svg`), false, `${root} should not carry Codex metadata`);
+  }
+});
+
 test("all packaged MCP definitions omit auth data and the retired management endpoint", () => {
   for (const path of [
     "mcp.json",
@@ -336,6 +394,8 @@ test("tracked generated artifacts are current and deterministic", () => {
     );
     mkdirSync(join(temporaryRoot, "mcp"), { recursive: true });
     cpSync(LOCAL_MCP_SOURCE, join(temporaryRoot, LOCAL_MCP_SOURCE));
+    mkdirSync(join(temporaryRoot, "assets"), { recursive: true });
+    cpSync(ICON_SOURCE, join(temporaryRoot, ICON_SOURCE));
     writeFileSync(join(temporaryRoot, ".mcp.json"), "stale client marker\n");
 
     build(temporaryRoot);
@@ -876,8 +936,8 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.1/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.2\/`/);
-  assert.match(readme, /coordinated candidates are hosted\/local plugin 5\.0\.2 and initializer\n0\.9\.1/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.3\/`/);
+  assert.match(readme, /The current plugin source is 5\.0\.3; its operating behavior matches 5\.0\.2/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
