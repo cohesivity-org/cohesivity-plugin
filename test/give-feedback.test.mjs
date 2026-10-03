@@ -49,7 +49,7 @@ test("give_feedback sends only trimmed text to the fixed endpoint and projects o
     const input = request(projectRoot, feedback);
     input.params._meta = { "client/context": { prompt: "private-prompt-marker", user: "private-user-marker" } };
     const result = await handleRequest(input, {
-      env: { SECRET: "private-env-marker" },
+      env: { SECRET: "sample-env-marker" },
       fetch: async (url, options) => {
         fetches++;
         assert.equal(String(url), "https://cohesivity.ai/api/feedback/service");
@@ -63,7 +63,7 @@ test("give_feedback sends only trimmed text to the fixed endpoint and projects o
         return response({
           success: true, accepted_for_discount: false,
           feedback_rejection_message: "Rewrite feedback to receive a discount",
-          feedback_token: "private-discount-token", discount_next_steps: "Redeem this token",
+          feedback_token: "sample-discount-token", discount_next_steps: "Redeem this token",
           feedback, message: "private-personal-data", next_steps: "Submit again",
           coh_management_key: managementKey, coh_application_key: "coh_app_abcdefghij1234567890",
         });

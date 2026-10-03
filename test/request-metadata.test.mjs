@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { handleRequest, QUICKSTART_URL } from "../mcp/project-bootstrap.mjs";
 
 test("tools/call accepts optional request metadata without forwarding or returning it", async () => {
-  for (const metadata of [undefined, {}, { progressToken: 42 }, { progressToken: "codex-call", "client/context": { trace: "metadata-only-marker" } }]) {
+  for (const metadata of [undefined, {}, { progressToken: 42 }, { progressToken: "sample-codex-call", "client/context": { trace: "metadata-only-marker" } }]) {
     const projectRoot = mkdtempSync(join(tmpdir(), "cohesivity-metadata-"));
     let fetches = 0;
     try {

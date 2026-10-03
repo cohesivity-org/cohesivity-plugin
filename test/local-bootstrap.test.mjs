@@ -16,7 +16,7 @@ function fixture(t) {
   const project = join(root, "project ; $(must-not-run)");
   const home = join(root, "home");
   mkdirSync(project); mkdirSync(home);
-  return { root, project, home, env: { HOME: home, PATH: "/usr/bin:/bin", SECRET: "never-forward", BASH_ENV: "/malicious" } };
+  return { root, project, home, env: { HOME: home, PATH: "/usr/bin:/bin", SECRET: "sample-never-forward", BASH_ENV: "/malicious" } };
 }
 function credentials(project, lifecycle = "ephemeral") {
   writeFileSync(join(project, ".cohesivity"), `tenant_id=swift-fox-running\ncoh_management_key=coh_man_1234567890abcdefghij\ncoh_application_key=coh_app_abcdefghij1234567890\ntenant_lifecycle=${lifecycle}\nruntime_profile=stable-v1\n`, { mode: 0o600 });

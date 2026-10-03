@@ -567,15 +567,15 @@ test("credential reads reject a FIFO without blocking the stdio server", () => {
 
   try {
     const moduleUrl = new URL("../mcp/project-bootstrap.mjs", import.meta.url).href;
-    const program = `
-      import { callTool } from ${JSON.stringify(moduleUrl)};
-      try {
-        await callTool("tenant_status", { project_root: ${JSON.stringify(temporaryRoot)} });
-        process.exitCode = 2;
-      } catch (error) {
-        if (!/regular file/.test(error.message)) process.exitCode = 3;
-      }
-    `;
+    const program = [
+      "import { callTool } from " + JSON.stringify(moduleUrl) + ";",
+      "try {",
+      '  await callTool("tenant_status", { project_root: ' + JSON.stringify(temporaryRoot) + " });",
+      "  process.exitCode = 2;",
+      "} catch (error) {",
+      "  if (!/regular file/.test(error.message)) process.exitCode = 3;",
+      "}",
+    ].join("\n");
     const result = spawnSync(process.execPath, ["--input-type=module", "-e", program], {
       encoding: "utf8",
       env: { CLAUDE_PROJECT_DIR: temporaryRoot },
