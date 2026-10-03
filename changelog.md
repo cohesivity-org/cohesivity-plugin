@@ -676,3 +676,48 @@ Pin source/archive commit `ef76ec8b2c6d66a3eb69d0d63c8d096d2c27552a` in the
 `146985fde9229544da3bd1a8c793c180da8593ccd0a7b44b1a966f5ddea0b731`).
 All 70 tests pass, along with generated checks. Only the manifest changed in
 this step; prior artifacts remain unchanged.
+
+## 2026-10-03 — Codex presentation metadata, icon, package README, and lockfile; plugin 5.0.3
+
+### Why
+
+The OpenAI and Codex manifests carried no `interface` object, so ChatGPT and
+Codex Plugins Directories, and Codex marketplaces built from them, had no
+display name, short description, starter prompts, or icon for Cohesivity.
+`interface` is Codex's own `.codex-plugin/plugin.json` presentation schema
+(`codex-rs/core-plugins/src/manifest.rs`), not a directory-specific field.
+The package README, `.codexignore`, and lockfile were requested alongside it.
+
+### What changed
+
+- `scripts/build-packages.mjs` adds `interface` to the generated OpenAI and
+  Codex manifests: display and developer name, short and long descriptions
+  (the long description is the standard listing text), `Developer Tools`
+  category, `Interactive`/`Read`/`Write` capabilities, website, privacy, and
+  terms URLs, three starter prompts within Codex's 3 × 128-character limit,
+  brand color, and `./assets/icon.svg` as `composerIcon` and `logo`.
+- `assets/icon.svg` is the cohesivity.ai badge mark (336 bytes, plain vector,
+  no raster or script). It is copied into `packages/openai/` and
+  `packages/codex/plugins/cohesivity/` with a generated `README.md` and
+  `.codexignore`. Claude, Gemini, Antigravity, and the portable root are
+  unchanged apart from the version.
+- Build validation checks the interface fields, prompt limits, URL hosts,
+  icon size and content, and the presence of the README and `.codexignore`;
+  a packaging test covers both Codex roots.
+- `package-lock.json` records the dependency-free package.
+- Version 5.0.3 moves through `SERVER_VERSION`, `package.json`, the generated
+  manifests, and new `artifacts/v5.0.3/` inputs. Earlier artifact directories
+  are untouched. The pinned skill (`39cad13754e6`) is unchanged and still names
+  plugin 5.0.2 in its coordinated-release line; installers keep the archive
+  they pin until updated.
+
+### Verification
+
+- `npm run build`: packages and 5.0.3 archives regenerate; `--check` passes.
+- HOL plugin scanner 3.18.1: 92/100 (A), up from 89; both Codex roots score
+  93. Its remaining high findings are the existing fake `coh_*` fixtures in
+  `test/`, which no package ships.
+- awesome-codex-plugins' `validate-plugin-pr.py` manifest check returns no
+  errors, and its generator resolves `packages/codex/plugins/cohesivity` and
+  mirrors the icon, README, and `.codexignore`.
+- `git diff --check` passes. No tenant or resource was created.

@@ -176,8 +176,10 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The coordinated candidates are hosted/local plugin 5.0.2 and initializer
-0.9.1. This guidance does not assert publication or deployment.
+The current plugin source is 5.0.3; its operating behavior matches 5.0.2 and
+adds Codex presentation metadata. Installers keep the plugin archive they pin
+until they are updated. This guidance does not assert publication or
+deployment.
 
 ## Supported package surfaces
 
@@ -197,7 +199,11 @@ MCP configuration, and the license. The Claude wrapper adapts the canonical
 skill with Claude Code marketplace metadata and section headings while keeping
 the same operating rules. Other wrappers preserve the canonical skill bytes.
 `packages/codex/` is a marketplace catalog whose self-contained plugin lives at
-`plugins/cohesivity/`. The OpenAI and Codex packages intentionally have no
+`plugins/cohesivity/`. The OpenAI and Codex plugin roots also carry Codex's
+`interface` presentation metadata (display name, descriptions, capabilities,
+website and legal links, starter prompts, brand color, and `assets/icon.svg`,
+generated from the root `assets/icon.svg`), a package `README.md`, and
+`.codexignore`. The OpenAI and Codex packages intentionally have no
 `.app.json`: this repository does not own a registered `plugin_asdk_app...` ID,
 and inventing one would not create a valid ChatGPT app connection.
 
@@ -292,7 +298,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v5.0.2/`; existing
+Current versioned installer inputs live under `artifacts/v5.0.3/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

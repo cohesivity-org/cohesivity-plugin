@@ -66,7 +66,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.0.2");
+  assert.equal(VERSION, "5.0.3");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -298,6 +298,36 @@ test("native wrapper package roots use each client's remote MCP shape", () => {
     json("packages/codex/plugins/cohesivity/.mcp.json"),
     json("packages/openai/.mcp.json"),
   );
+});
+
+test("OpenAI and Codex plugin roots carry presentation metadata and an icon", () => {
+  const icon = readFileSync("assets/icon.svg");
+  for (const root of ["packages/openai", "packages/codex/plugins/cohesivity"]) {
+    const manifest = json(`${root}/.codex-plugin/plugin.json`);
+    const ui = manifest.interface;
+    assert.equal(ui.displayName, "Cohesivity");
+    assert.equal(ui.developerName, "Cohesivity");
+    assert.equal(ui.category, "Developer Tools");
+    assert.deepEqual(ui.capabilities, ["Interactive", "Read", "Write"]);
+    assert.equal(ui.composerIcon, "./assets/icon.svg");
+    assert.equal(ui.logo, "./assets/icon.svg");
+    assert.match(ui.longDescription, /^cohesivity\.ai offers free agent native backend services\. Anonymous account/);
+    assert.ok(ui.shortDescription.length > 0);
+    assert.ok(ui.defaultPrompt.length >= 1 && ui.defaultPrompt.length <= 3);
+    for (const prompt of ui.defaultPrompt) assert.ok(prompt.length <= 128);
+    assert.deepEqual(readFileSync(`${root}/assets/icon.svg`), icon);
+    assert.ok(icon.length <= 50 * 1024);
+    assert.doesNotMatch(icon.toString("utf8"), /<image\b|data:|<script\b/i);
+    assert.match(readFileSync(`${root}/README.md`, "utf8"), /^# Cohesivity plugin for Codex$/m);
+    assert.match(readFileSync(`${root}/.codexignore`, "utf8"), /^\.cohesivity$/m);
+  }
+  assert.deepEqual(
+    json("packages/codex/plugins/cohesivity/.codex-plugin/plugin.json"),
+    json("packages/openai/.codex-plugin/plugin.json"),
+  );
+  for (const root of ["packages/claude", "packages/gemini", "packages/antigravity"]) {
+    assert.equal(existsSync(`${root}/assets/icon.svg`), false, `${root} should not carry Codex metadata`);
+  }
 });
 
 test("all packaged MCP definitions omit auth data and the retired management endpoint", () => {
