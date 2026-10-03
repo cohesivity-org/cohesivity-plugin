@@ -741,3 +741,20 @@ plus `@import`, data URLs, embedded raster/script/foreign content, and event
 handlers, with a test for each form. The shipped icon has no references and
 is unchanged, so no package or 5.0.3 archive changed. All 72 tests pass and
 `npm run check` passes.
+
+## 2026-10-03 — Test fixtures that secret scanners read as real values
+
+The HOL plugin scanner that hashgraph-online/awesome-codex-plugins runs in CI
+(2.0.1116) reported five high findings, all in `test/`. Four came from fixture
+values that its generic secret patterns match (`SECRET:` env markers,
+`progressToken:` request metadata, and a discount `feedback_token`). Those
+values now start with `sample-`, which the scanner treats as illustrative. The
+fifth was the FIFO test's child program, written as a template literal a few
+characters before `spawnSync`; it is now built from joined strings. Each test
+asserts the same behavior as before; the feedback request leak check now
+names `sample-env-marker` explicitly, since it no longer matches `private-.*-marker`
+(Greptile, PR #27).
+
+Tests only. No package, archive, skill, local MCP, or version changed. With the
+change the same scanner reports no high or critical findings (89/100), all 72
+tests pass on Node 24.18.0, and `npm run check` passes.

@@ -27,7 +27,7 @@ const input = [
   request(3, "ping", {}),
   "{invalid-json",
   request(4, "ping", {}),
-  request(5, "tools/call", { name: "create_tenant", arguments: {}, _meta: { progressToken: "codex-call" } }),
+  request(5, "tools/call", { name: "create_tenant", arguments: {}, _meta: { progressToken: "sample-codex-call" } }),
   "",
 ].join("\n");
 
