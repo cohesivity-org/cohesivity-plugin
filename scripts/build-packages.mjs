@@ -485,6 +485,23 @@ function validatePortableMcp(mcp) {
   }
 }
 
+// Packaged icons render in clients that may fetch nothing else, so an icon may
+// reference only fragments inside itself.
+export function svgSelfContainmentProblem(svg) {
+  const rules = [
+    [/<(?:image|script|foreignObject|iframe|object|embed)\b/i, "embedded raster, script, or foreign content"],
+    [/\bon[a-z]+\s*=/i, "event handler attribute"],
+    [/\b(?:xlink:)?href\s*=\s*(["'])\s*(?!#)/i, "href to anything but an internal #fragment"],
+    [/\burl\(\s*(["']?)\s*(?!#)/i, "CSS url() to anything but an internal #fragment"],
+    [/@import\b/i, "CSS @import"],
+    [/data:/i, "data URL"],
+  ];
+  for (const [pattern, description] of rules) {
+    if (pattern.test(svg)) return description;
+  }
+  return undefined;
+}
+
 function validateOpenAiInterface(files, packageRoot, manifest) {
   const label = `${packageRoot}/.codex-plugin/plugin.json interface`;
   const value = manifest.interface;
@@ -520,7 +537,8 @@ function validateOpenAiInterface(files, packageRoot, manifest) {
   assert(icon.length <= MAX_ICON_BYTES, `${packageRoot}/${ICON_SOURCE} exceeds ${MAX_ICON_BYTES} bytes`);
   const svg = icon.toString("utf8");
   assert(/^<svg[\s>]/.test(svg) && svg.trimEnd().endsWith("</svg>"), `${ICON_SOURCE} must be a plain SVG document`);
-  assert(!/<image\b|data:|<script\b|\bon[a-z]+\s*=/i.test(svg), `${ICON_SOURCE} must not embed rasters, data URLs, or scripts`);
+  const problem = svgSelfContainmentProblem(svg);
+  assert(!problem, `${ICON_SOURCE} must be self-contained: ${problem}`);
   for (const path of [".codexignore", "README.md"]) {
     assert(files.has(`${packageRoot}/${path}`), `${packageRoot} is missing ${path}`);
   }

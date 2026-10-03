@@ -731,3 +731,13 @@ packaging tests now copy `assets/icon.svg` into the deterministic-build fixture
 and expect the 5.0.3 README wording. All 71 tests pass on Node 24.18.0, along
 with `npm run check`; Node 18 is left to CI. Only the manifest, tests, and
 changelog changed in this step; no archive changed.
+
+## 2026-10-03 — Require packaged icons to be self-contained
+
+Greptile on PR #26 found that the icon check accepted external
+`<use href="https://…">` and CSS `url(https://…)` references. The build now
+rejects any `href`/`xlink:href` or `url()` that is not an internal `#fragment`,
+plus `@import`, data URLs, embedded raster/script/foreign content, and event
+handlers, with a test for each form. The shipped icon has no references and
+is unchanged, so no package or 5.0.3 archive changed. All 72 tests pass and
+`npm run check` passes.

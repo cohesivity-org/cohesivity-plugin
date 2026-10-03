@@ -17,6 +17,7 @@ import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
 import {
   ICON_SOURCE,
+  svgSelfContainmentProblem,
   LOCAL_MCP_SOURCE,
   MCP_ENDPOINT,
   SKILL_SHA256,
@@ -301,6 +302,32 @@ test("native wrapper package roots use each client's remote MCP shape", () => {
   );
 });
 
+test("packaged icons must be self-contained SVG", () => {
+  const wrap = (body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`;
+  for (const body of [
+    '<rect width="10" height="10"/>',
+    '<defs><linearGradient id="g"/></defs><rect fill="url(#g)"/>',
+    '<use href="#mark"/>',
+    "<use xlink:href='#mark'/>",
+  ]) {
+    assert.equal(svgSelfContainmentProblem(wrap(body)), undefined, body);
+  }
+  for (const body of [
+    '<use href="https://example.com/sprite.svg#mark"/>',
+    '<use xlink:href="//example.com/sprite.svg#mark"/>',
+    '<rect style="fill: url(https://example.com/p.svg#x)"/>',
+    "<rect fill=\"url('https://example.com/p.svg#x')\"/>",
+    '<style>@import "https://example.com/a.css";</style>',
+    '<image href="#x"/>',
+    '<script>1</script>',
+    '<foreignObject></foreignObject>',
+    '<rect onload="x()"/>',
+    '<rect fill="url(data:image/png;base64,AA)"/>',
+  ]) {
+    assert.ok(svgSelfContainmentProblem(wrap(body)), body);
+  }
+});
+
 test("OpenAI and Codex plugin roots carry presentation metadata and an icon", () => {
   const icon = readFileSync("assets/icon.svg");
   for (const root of ["packages/openai", "packages/codex/plugins/cohesivity"]) {
@@ -318,7 +345,7 @@ test("OpenAI and Codex plugin roots carry presentation metadata and an icon", ()
     for (const prompt of ui.defaultPrompt) assert.ok(prompt.length <= 128);
     assert.deepEqual(readFileSync(`${root}/assets/icon.svg`), icon);
     assert.ok(icon.length <= 50 * 1024);
-    assert.doesNotMatch(icon.toString("utf8"), /<image\b|data:|<script\b/i);
+    assert.equal(svgSelfContainmentProblem(icon.toString("utf8")), undefined);
     assert.match(readFileSync(`${root}/README.md`, "utf8"), /^# Cohesivity plugin for Codex$/m);
     assert.match(readFileSync(`${root}/.codexignore`, "utf8"), /^\.cohesivity$/m);
   }
