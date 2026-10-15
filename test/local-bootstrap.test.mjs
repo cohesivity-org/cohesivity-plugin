@@ -396,6 +396,24 @@ test("account tokens are redacted even in rejected MCP arguments", async () => {
   assert.doesNotMatch(JSON.stringify(result), new RegExp(accessToken));
 });
 
+test("provisioning rejects combinations the flat advertised schema cannot express", async (t) => {
+  const { project } = fixture(t); credentials(project);
+  let calls = 0;
+  const dependencies = { fetch: async () => { calls++; return response({ provisioned: true }); } };
+  for (const [args, message] of [
+    [{}, /exactly one of resource or resources/],
+    [{ resource: "redis", resources: ["postgres"] }, /exactly one of resource or resources/],
+    [{ resource: "social-login" }, /configuration is required for social-login/],
+    [{ resource: "vector-database", configuration: { metric: "cosine" } }, /Missing required argument: dimensions/],
+    [{ resource: "postgres", configuration: { callback_urls: ["https://example.test/cb"] } }, /Unexpected argument: callback_urls/],
+    [{ resource: "postgres", configurations: { postgres: { region: "apac" } } }, /Unexpected argument: configurations/],
+    [{ resources: ["postgres"], configuration: { region: "apac" } }, /Unexpected argument: configuration/],
+  ]) {
+    await assert.rejects(callTool("provision_resource", { project_root: project, ...args, confirmed: true }, dependencies), message);
+  }
+  assert.equal(calls, 0);
+});
+
 test("single no-configuration resources provision without config and reject supplied config", async (t) => {
   const { project } = fixture(t); credentials(project);
   let calls = 0;
