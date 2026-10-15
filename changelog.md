@@ -809,3 +809,31 @@ manifest and changelog changed; the archives are byte-identical to the
 previous commit. All 73 tests and `npm run check` pass on Node 22.22.0; Node
 18 and 24 are left to CI. Nothing installs 5.0.4 yet: `@cohesivity/init` and
 the quickstart still pin 5.0.2.
+
+## 2026-10-15 — Bundle the skill that points at init 0.9.3; plugin 5.0.5
+
+COH-329 follow-up. Plugin 5.0.4 flattened `provision_resource`, but nothing
+installed it: `@cohesivity/init` 0.9.2 and the quickstart still pin 5.0.2, and
+the skill's no-MCP fallback runs init 0.9.1. With the user's approval the skill
+gets a version-only edit (mirror `cohesivity-org/cohesivity-skill@987771e1`,
+metadata version `9061ab1e993d`, 25,773 bytes, SHA-256 `803520ed…cfab`): the
+fallback runs `@cohesivity/init@0.9.3` and the coordinated-release line names
+plugin 5.0.5 and initializer 0.9.3. Init 0.9.2 is already on npm, so the next
+initializer is 0.9.3. Because every package bundles the skill, the new skill is
+a new plugin version.
+
+### What changed
+
+- `skills/cohesivity/SKILL.md` and every generated wrapper copy carry the new
+  skill; `scripts/build-packages.mjs` pins its commit, version, and hash, and
+  the README records them.
+- Version 5.0.5 across the manifests and new `artifacts/v5.0.5/` archives;
+  earlier artifacts are unchanged. The local MCP differs from 5.0.4 only in its
+  version string.
+- `test/packaging.test.mjs` expects the new skill pin, the `init@0.9.3`
+  fallback, and the 5.0.5 README wording.
+
+### Verification
+
+`build-packages.mjs --check` passes; every test passes except the archive test,
+which needs the step-two manifest stamp from this commit.
