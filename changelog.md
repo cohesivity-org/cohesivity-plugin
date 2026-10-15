@@ -799,3 +799,13 @@ of `tenant_id`.
 The schema test failed before the source change and passes after. Every test
 passes except the archive test, which needs the step-two manifest stamp from
 this commit; `build-packages.mjs --check` passes.
+
+## 2026-10-15 — Stamp the 5.0.4 install manifest
+
+Pin source/archive commit `8d929798cebbe5afbdbb68a80290808ab85e09a7` in the
+10,607-byte manifest (SHA-256
+`3c1dcee57106ae645ecf5febaccda8dd61e0d9bb900fc271e577eb8b73961b36`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. All 73 tests and `npm run check` pass on Node 22.22.0; Node
+18 and 24 are left to CI. Nothing installs 5.0.4 yet: `@cohesivity/init` and
+the quickstart still pin 5.0.2.
