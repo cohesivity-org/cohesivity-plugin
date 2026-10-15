@@ -837,3 +837,13 @@ a new plugin version.
 
 `build-packages.mjs --check` passes; every test passes except the archive test,
 which needs the step-two manifest stamp from this commit.
+
+## 2026-10-15 — Stamp the 5.0.5 install manifest
+
+Pin source/archive commit `8f36a86e7332fed5319069ebe038df4bca0008c1` in the
+10,607-byte manifest (SHA-256
+`9a2d61863b7de14374390e0c3654f56bec302c187bc48c31646c6503e8193876`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. All 73 tests and `npm run check` pass on Node 22.22.0; Node
+18 and 24 are left to CI. `@cohesivity/init` 0.9.3 and the quickstart pin this
+manifest in their own changes.
