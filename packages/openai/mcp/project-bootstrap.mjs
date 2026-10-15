@@ -50,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "5.0.3";
+export const SERVER_VERSION = "5.0.4";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
@@ -143,9 +143,6 @@ const requiresUserInteraction = {
   "anthropic/requiresUserInteraction": true,
 };
 
-const noConfigurationResources = RESOURCE_NAMES.filter(
-  (name) => !["inbox", "postgres", "realtime", "social-login", "vector-database"].includes(name),
-);
 const POSTGRES_REGIONS = Object.freeze([
   "apac",
   "aws-us-east-1",
@@ -220,57 +217,48 @@ const bulkConfigurationsSchema = {
   additionalProperties: false,
 };
 
+// One flat object (COH-329): many MCP clients read only top-level properties
+// and drop every argument of a tool declared as a top-level oneOf. callTool
+// still enforces the exact per-resource shapes. The hosted /mcp advertises the
+// identical schema with tenant_id in place of project_root.
 const provisionInputSchema = {
   type: "object",
-  oneOf: [
-    {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resource: { enum: noConfigurationResources },
-        confirmed: confirmedProperty,
-      },
-      required: ["project_root", "resource", "confirmed"],
-      additionalProperties: false,
+  properties: {
+    project_root: projectRootProperty,
+    resource: {
+      enum: RESOURCE_NAMES,
+      description: "One resource to provision. Pass exactly one of resource or resources.",
     },
-    ...[
-      ["postgres", postgresConfigurationSchema],
-      ["inbox", inboxConfigurationSchema],
-      ["realtime", realtimeConfigurationSchema],
-      ["social-login", socialLoginConfigurationSchema],
-      ["vector-database", vectorConfigurationSchema],
-    ].map(([resource, configuration]) => ({
+    configuration: {
       type: "object",
       properties: {
-        project_root: projectRootProperty,
-        resource: { const: resource },
-        configuration,
-        confirmed: confirmedProperty,
+        ...postgresConfigurationSchema.properties,
+        ...inboxConfigurationSchema.properties,
+        ...realtimeConfigurationSchema.properties,
+        ...socialLoginConfigurationSchema.properties,
+        ...vectorConfigurationSchema.properties,
       },
-      required:
-        resource === "social-login" || resource === "vector-database"
-          ? ["project_root", "resource", "configuration", "confirmed"]
-          : ["project_root", "resource", "confirmed"],
       additionalProperties: false,
-    })),
-    {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resources: {
-          type: "array",
-          minItems: 1,
-          maxItems: RESOURCE_NAMES.length,
-          uniqueItems: true,
-          items: { enum: RESOURCE_NAMES },
-        },
-        configurations: bulkConfigurationsSchema,
-        confirmed: confirmedProperty,
-      },
-      required: ["project_root", "resources", "confirmed"],
-      additionalProperties: false,
+      description:
+        "Configuration for resource. social-login requires callback_urls; vector-database requires dimensions and accepts metric; postgres accepts region; inbox accepts webhook_url; realtime accepts write_region. Other resources take no configuration.",
     },
-  ],
+    resources: {
+      type: "array",
+      minItems: 1,
+      maxItems: RESOURCE_NAMES.length,
+      uniqueItems: true,
+      items: { enum: RESOURCE_NAMES },
+      description: "Several resources to provision in one call. Pass exactly one of resource or resources.",
+    },
+    configurations: {
+      ...bulkConfigurationsSchema,
+      description:
+        "Configuration for resources, keyed by resource name. Required for social-login and vector-database when they are requested.",
+    },
+    confirmed: confirmedProperty,
+  },
+  required: ["project_root", "confirmed"],
+  additionalProperties: false,
 };
 
 const DOCUMENTATION_TOOL = Object.freeze({
@@ -384,7 +372,7 @@ export const TOOLS = Object.freeze([
     name: "provision_resource",
     title: "Provision Cohesivity resources",
     description:
-      "Provisions one resource with resource/configuration, or several with resources/configurations. Requires an existing tenant: if project_root has no .cohesivity file, call create_tenant first. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
+      "Provisions one resource with resource (plus configuration), or several with resources (plus configurations); pass exactly one of resource or resources. social-login requires callback_urls and vector-database requires dimensions; postgres, inbox, and realtime take optional configuration; other resources take none. Requires an existing tenant: if project_root has no .cohesivity file, call create_tenant first. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
     inputSchema: provisionInputSchema,
     _meta: requiresUserInteraction,
     outputSchema: {
@@ -398,10 +386,6 @@ export const TOOLS = Object.freeze([
         result: jsonObjectSchema,
       },
       required: ["result"],
-      oneOf: [
-        { required: ["resource"] },
-        { required: ["resources"] },
-      ],
       additionalProperties: false,
     },
   },

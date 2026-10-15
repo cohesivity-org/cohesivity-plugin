@@ -176,9 +176,10 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The current plugin source is 5.0.3; its operating behavior matches 5.0.2 and
-adds Codex presentation metadata. Installers keep the plugin archive they pin
-until they are updated. This guidance does not assert publication or
+The current plugin source is 5.0.4; it publishes `provision_resource` input as
+one flat object, so clients that read only top-level `properties` keep its
+arguments, and otherwise behaves like 5.0.3. Installers keep the plugin archive
+they pin until they are updated. This guidance does not assert publication or
 deployment.
 
 ## Supported package surfaces
@@ -298,7 +299,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v5.0.3/`; existing
+Current versioned installer inputs live under `artifacts/v5.0.4/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

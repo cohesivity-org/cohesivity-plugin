@@ -68,7 +68,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.0.3");
+  assert.equal(VERSION, "5.0.4");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -847,11 +847,28 @@ test("MCP exposes only strict named tools and never a shell or generic API proxy
       assert.equal(tool._meta?.["anthropic/requiresUserInteraction"], true, tool.name);
     }
   }
+  // COH-329: clients that read only top-level properties drop every argument
+  // of a tool declared as a top-level oneOf, so each schema is one flat object.
+  for (const tool of tools) {
+    for (const schema of [tool.inputSchema, tool.outputSchema].filter(Boolean)) {
+      for (const keyword of ["oneOf", "anyOf", "allOf", "not", "if"]) {
+        assert.equal(schema[keyword], undefined, `${tool.name} has a top-level ${keyword}`);
+      }
+    }
+    for (const field of tool.inputSchema.required) assert.ok(tool.inputSchema.properties[field], `${tool.name}.${field}`);
+  }
   const provision = tools.find((tool) => tool.name === "provision_resource");
-  assert.ok(
-    provision.inputSchema.oneOf.some((variant) => variant.required?.includes("resources")),
-    "provision_resource must declare its bulk input shape",
+  assert.deepEqual(provision.inputSchema.required, ["project_root", "confirmed"]);
+  assert.deepEqual(
+    Object.keys(provision.inputSchema.properties).sort(),
+    ["configuration", "configurations", "confirmed", "project_root", "resource", "resources"],
   );
+  assert.deepEqual(
+    Object.keys(provision.inputSchema.properties.configuration.properties).sort(),
+    ["callback_urls", "dimensions", "metric", "region", "webhook_url", "write_region"],
+  );
+  assert.ok(provision.inputSchema.properties.configurations.properties["vector-database"]);
+  assert.match(provision.description, /exactly one of resource or resources/);
   await assert.rejects(
     callTool("deprovision_resource", {}),
     /Unknown tool: deprovision_resource/,
@@ -936,8 +953,8 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.1/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.3\/`/);
-  assert.match(readme, /The current plugin source is 5\.0\.3; its operating behavior matches 5\.0\.2/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.0\.4\/`/);
+  assert.match(readme, /The current plugin source is 5\.0\.4; it publishes `provision_resource` input as\none flat object/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

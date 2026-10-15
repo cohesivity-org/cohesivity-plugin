@@ -758,3 +758,54 @@ names `sample-env-marker` explicitly, since it no longer matches `private-.*-mar
 Tests only. No package, archive, skill, local MCP, or version changed. With the
 change the same scanner reports no high or critical findings (89/100), all 72
 tests pass on Node 24.18.0, and `npm run check` passes.
+
+## 2026-10-15 — Flatten provision_resource input schema; plugin 5.0.4
+
+COH-329. `provision_resource` declared its arguments only inside a top-level
+`oneOf` with seven branches and no top-level `properties`. Clients that read
+only `inputSchema.properties` (Microsoft Agent Framework 1.21.0, pi-go,
+AnythingMCP) decided the tool takes no arguments and stripped everything the
+agent sent. The hosted server showed the result as `arguments.tenant_id is
+required.`; this local server has the same schema with `project_root` in place
+of `tenant_id`.
+
+### What changed
+
+- `mcp/project-bootstrap.mjs`: `provisionInputSchema` is one flat object with
+  `project_root`, `resource`, `configuration`, `resources`, `configurations`,
+  and `confirmed`; only `project_root` and `confirmed` are required.
+  `configuration` lists the six per-resource fields (`region`, `webhook_url`,
+  `write_region`, `callback_urls`, `dimensions`, `metric`) instead of a nested
+  union, so it stays readable for clients that also reject nested `anyOf`.
+  `configurations` keeps its per-resource sub-schemas. The output schema drops
+  its top-level `oneOf`. The tool description says to pass exactly one of
+  `resource` or `resources` and which resources need configuration. `callTool`
+  already validated the exact shapes by hand, so accepted calls do not change.
+  The unused `noConfigurationResources` helper is gone.
+- Version 5.0.4 across the manifests, the regenerated wrappers, and new
+  `artifacts/v5.0.4/` archives; earlier artifacts are unchanged. The hosted
+  `/mcp` advertises the identical flat schema (cohesivity-org/cohesivity,
+  same branch).
+- `test/packaging.test.mjs`: no tool input or output schema has a top-level
+  `oneOf`/`anyOf`/`allOf`/`not`/`if`, every required field is a declared
+  property, and `provision_resource` has the six flat properties.
+  `test/local-bootstrap.test.mjs`: seven combinations the flat schema can no
+  longer express (neither or both of `resource`/`resources`, social-login
+  without configuration, a field from another resource, singular and plural
+  forms mixed) are rejected before any request.
+
+### Verification
+
+The schema test failed before the source change and passes after. Every test
+passes except the archive test, which needs the step-two manifest stamp from
+this commit; `build-packages.mjs --check` passes.
+
+## 2026-10-15 — Stamp the 5.0.4 install manifest
+
+Pin source/archive commit `8d929798cebbe5afbdbb68a80290808ab85e09a7` in the
+10,607-byte manifest (SHA-256
+`3c1dcee57106ae645ecf5febaccda8dd61e0d9bb900fc271e577eb8b73961b36`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. All 73 tests and `npm run check` pass on Node 22.22.0; Node
+18 and 24 are left to CI. Nothing installs 5.0.4 yet: `@cohesivity/init` and
+the quickstart still pin 5.0.2.
