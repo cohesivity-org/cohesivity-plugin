@@ -847,3 +847,97 @@ manifest and changelog changed; the archives are byte-identical to the
 previous commit. All 73 tests and `npm run check` pass on Node 22.22.0; Node
 18 and 24 are left to CI. `@cohesivity/init` 0.9.3 and the quickstart pin this
 manifest in their own changes.
+
+## 2026-10-16 — Forward an optional attribution label from the local MCP; plugin 5.1.0
+
+Tenants created through the local MCP had no way to carry an integration
+label, and the hosted `create_tenant` now takes an optional `attribution`
+suffix (cohesivity-org/cohesivity#555). The local server gets the equivalent:
+it reads `COHESIVITY_ATTRIBUTION` once at startup, validates it against the
+same slug rule genesis uses, and passes it to the quickstart as
+`--attribution <value>` after any account arguments. An invalid value is
+ignored with a warning on stderr and refused again if it reaches
+`create_tenant`. No harness detection moves into the MCP: the quickstart has
+no override flag, and its own parent-process walk is fixed in the same core
+change, so npx-launched servers on macOS stop recording `none`.
+
+Bundles skill mirror `cohesivity-org/cohesivity-skill@cdad174e` (metadata
+version `8927298e3cb3`, 26,634 bytes, SHA-256 `12bd7ec0…c5c`): hosted
+`create_tenant` documents the optional `attribution`, `confirmed: true` stays
+required, the no-MCP fallback runs `@cohesivity/init@0.9.4`, and the
+coordinated-release line names plugin 5.1.0 and initializer 0.9.4.
+
+### What changed
+
+- `mcp/project-bootstrap.mjs` and every generated copy: `COHESIVITY_ATTRIBUTION`
+  read, validated, and forwarded; `SERVER_VERSION` 5.1.0.
+- `skills/cohesivity/SKILL.md` and every wrapper copy carry the new skill;
+  `scripts/build-packages.mjs` pins its commit, version, and hash; the README
+  records them.
+- Version 5.1.0 across the manifests and new `artifacts/v5.1.0/` archives;
+  earlier artifacts are unchanged.
+- `test/local-bootstrap.test.mjs` covers the env value reaching quickstart,
+  an invalid value being dropped, and the no-env default.
+  `test/packaging.test.mjs` expects the new skill pin, the `init@0.9.4`
+  fallback, and the 5.1.0 README wording.
+
+### Verification
+
+`build-packages.mjs --check` passes; 77 of 78 tests pass, the archive test
+needs the step-two manifest stamp from this commit.
+
+
+## 2026-10-16 — Stamp the 5.1.0 install manifest
+
+Pin source/archive commit `09644bb4d7d58853d613cd07f6dcb9f49c8c003a` in the
+10607-byte manifest (SHA-256
+`24fe360d5a40c32ffd6e8300ee3768aab5cdcbe5d42691ca8fcb79fa05319389`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit.
+
+## 2026-10-16 — Accept --attribution as a server argument; rebundle skill da03363df011
+
+Catalog entries such as Raven's can pass arguments but not environment
+variables, so `COHESIVITY_ATTRIBUTION` alone could not tag their installs
+(COH-318). The local server now also reads `--attribution <value>` or
+`--attribution=<value>` from its own arguments. `startupDependencies(environment,
+argv)` reads both once at startup, and a valid flag wins over the
+environment. An invalid flag, or a flag with no value, is ignored with a
+warning on stderr and falls back to a valid environment value. The process
+still starts. Any argument other than `--attribution` keeps the usage error.
+Greptile on #30 also asked for coverage of the startup read itself: a new test
+runs two `create_tenant` requests through one `runServer` and changes the
+environment between them.
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@04243616`
+(metadata version `da03363df011`, 26,649 bytes, SHA-256 `b76be419…b6`). Its
+attribution parenthetical now states the first-character rule (Greptile on
+#30), and the README documents both the argument and environment forms with
+the same rule. Still 5.1.0. The unshipped `artifacts/v5.1.0/` archives and
+manifest are regenerated in place, and earlier artifacts are unchanged.
+
+### What changed
+
+- `mcp/project-bootstrap.mjs` and every generated copy:
+  `attributionFromArguments`, `startupDependencies(environment, argv)` as
+  `runServer`'s default, and the entry point accepting `--attribution`.
+- `skills/cohesivity/SKILL.md` and wrapper copies carry the new skill.
+  `scripts/build-packages.mjs`, `test/packaging.test.mjs`, and the README pin
+  it.
+- `test/local-bootstrap.test.mjs`: the startup read across two requests;
+  flag, environment, both, neither, and invalid flags; the spawned process
+  with `--attribution raven`, `--attribution=raven`, an invalid value, and an
+  unknown argument.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.
+
+## 2026-10-16 — Restamp the 5.1.0 install manifest
+
+Pin source/archive commit `71da89ee2ab898ad05f8ba94ebfecfd0b0be7ce3` in the
+10607-byte manifest (SHA-256
+`a327adea291c51dfa1f7da64255a8a59a2b0c4722e9866e4a24400e21a484f74`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass.
