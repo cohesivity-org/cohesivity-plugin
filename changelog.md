@@ -933,3 +933,11 @@ manifest are regenerated in place, and earlier artifacts are unchanged.
 
 `npm run check` and `npm test` results are recorded in the stamp entry that
 follows.
+
+## 2026-10-16 — Restamp the 5.1.0 install manifest
+
+Pin source/archive commit `71da89ee2ab898ad05f8ba94ebfecfd0b0be7ce3` in the
+10607-byte manifest (SHA-256
+`a327adea291c51dfa1f7da64255a8a59a2b0c4722e9866e4a24400e21a484f74`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass.
