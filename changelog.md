@@ -894,3 +894,42 @@ Pin source/archive commit `09644bb4d7d58853d613cd07f6dcb9f49c8c003a` in the
 `24fe360d5a40c32ffd6e8300ee3768aab5cdcbe5d42691ca8fcb79fa05319389`). Only the
 manifest and changelog changed; the archives are byte-identical to the
 previous commit.
+
+## 2026-10-16 — Accept --attribution as a server argument; rebundle skill da03363df011
+
+Catalog entries such as Raven's can pass arguments but not environment
+variables, so `COHESIVITY_ATTRIBUTION` alone could not tag their installs
+(COH-318). The local server now also reads `--attribution <value>` or
+`--attribution=<value>` from its own arguments. `startupDependencies(environment,
+argv)` reads both once at startup, and a valid flag wins over the
+environment. An invalid flag, or a flag with no value, is ignored with a
+warning on stderr and falls back to a valid environment value. The process
+still starts. Any argument other than `--attribution` keeps the usage error.
+Greptile on #30 also asked for coverage of the startup read itself: a new test
+runs two `create_tenant` requests through one `runServer` and changes the
+environment between them.
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@04243616`
+(metadata version `da03363df011`, 26,649 bytes, SHA-256 `b76be419…b6`). Its
+attribution parenthetical now states the first-character rule (Greptile on
+#30), and the README documents both the argument and environment forms with
+the same rule. Still 5.1.0. The unshipped `artifacts/v5.1.0/` archives and
+manifest are regenerated in place, and earlier artifacts are unchanged.
+
+### What changed
+
+- `mcp/project-bootstrap.mjs` and every generated copy:
+  `attributionFromArguments`, `startupDependencies(environment, argv)` as
+  `runServer`'s default, and the entry point accepting `--attribution`.
+- `skills/cohesivity/SKILL.md` and wrapper copies carry the new skill.
+  `scripts/build-packages.mjs`, `test/packaging.test.mjs`, and the README pin
+  it.
+- `test/local-bootstrap.test.mjs`: the startup read across two requests;
+  flag, environment, both, neither, and invalid flags; the spawned process
+  with `--attribution raven`, `--attribution=raven`, an invalid value, and an
+  unknown argument.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.

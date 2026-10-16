@@ -5,7 +5,9 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, st
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { attributionFromEnvironment, callTool, handleRequest, login, logout, runQuickstartProcess, runServer, secureEnvironment, validateOAuthCallback } from "../mcp/project-bootstrap.mjs";
+import { attributionFromArguments, attributionFromEnvironment, callTool, handleRequest, login, logout, runQuickstartProcess, runServer, secureEnvironment, startupDependencies, validateOAuthCallback } from "../mcp/project-bootstrap.mjs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { PassThrough } from "node:stream";
 
 const script = "#!/bin/bash\necho mocked quickstart\n";
@@ -596,4 +598,73 @@ test("runServer threads the start-time attribution through to create_tenant", as
   const reply = JSON.parse(output.read().toString());
   assert.equal(reply.result.structuredContent.tenant_id, "swift-fox-running");
   assert.deepEqual(seen, ["--attribution", "gh-npcpy"]);
+});
+
+test("runServer reads COHESIVITY_ATTRIBUTION once at start and keeps it across requests", async (t) => {
+  const { project, env } = fixture(t);
+  const processEnvironment = { ...env, COHESIVITY_ATTRIBUTION: "gh-npcpy" };
+  const startup = startupDependencies(processEnvironment, []);
+  processEnvironment.COHESIVITY_ATTRIBUTION = "gh-changed-later";
+  const seen = [];
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const done = runServer(input, output, {
+    ...startup, env: processEnvironment, fetch: async () => new Response(script),
+    runQuickstart: async (_text, args) => { seen.push(args); credentials(project); },
+  });
+  const call = (id) => `${JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "create_tenant", arguments: { project_root: project, confirmed: true } } })}\n`;
+  const firstReply = new Promise((resolveReply) => output.once("data", resolveReply));
+  input.write(call(1));
+  await firstReply;
+  rmSync(join(project, ".cohesivity"));
+  input.end(call(2));
+  await done;
+  assert.equal(seen.length, 2);
+  assert.deepEqual(seen[0], ["--attribution", "gh-npcpy"]);
+  assert.deepEqual(seen[1], ["--attribution", "gh-npcpy"], "the value read at start wins over a later environment change");
+  assert.equal(startupDependencies({ ...env }, []).attribution, null);
+});
+
+test("--attribution is read from server arguments for catalogs that can pass args but not env", () => {
+  const warnings = [];
+  const warn = (message) => warnings.push(message);
+  // Flag only, in both spellings.
+  assert.deepEqual(startupDependencies({}, ["--attribution", "raven"], warn), { attribution: "raven" });
+  assert.deepEqual(startupDependencies({}, ["--attribution=raven"], warn), { attribution: "raven" });
+  // Environment only.
+  assert.deepEqual(startupDependencies({ COHESIVITY_ATTRIBUTION: "gh-npcpy" }, [], warn), { attribution: "gh-npcpy" });
+  // Both: a valid flag wins.
+  assert.deepEqual(startupDependencies({ COHESIVITY_ATTRIBUTION: "gh-npcpy" }, ["--attribution", "raven"], warn), { attribution: "raven" });
+  // Neither.
+  assert.deepEqual(startupDependencies({}, [], warn), { attribution: null });
+  assert.equal(warnings.length, 0);
+  // Invalid flag: warned and ignored, falling back to a valid environment value.
+  for (const argv of [["--attribution", "-partner"], ["--attribution", "Raven"], ["--attribution"], ["--attribution="], [`--attribution=${"z".repeat(41)}`]]) {
+    assert.deepEqual(startupDependencies({}, argv, warn), { attribution: null }, JSON.stringify(argv));
+    assert.deepEqual(startupDependencies({ COHESIVITY_ATTRIBUTION: "gh-npcpy" }, argv, warn), { attribution: "gh-npcpy" }, JSON.stringify(argv));
+  }
+  assert.equal(warnings.length, 10);
+  assert.ok(warnings.every((message) => /--attribution/.test(message) && !/-partner|Raven/.test(message)), "the rejected value is never echoed");
+  assert.equal(attributionFromArguments(["--attribution", "a", "--attribution", "b"], warn), "b", "the last occurrence wins");
+  assert.equal(attributionFromArguments(["login"], warn), undefined);
+});
+
+test("the server process accepts --attribution, warns on an invalid value, and rejects unknown arguments", () => {
+  const entrypoint = fileURLToPath(new URL("../mcp/project-bootstrap.mjs", import.meta.url));
+  const ping = `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping", params: {} })}\n`;
+  const run = (args) => spawnSync(process.execPath, [entrypoint, ...args], { input: ping, encoding: "utf8", timeout: 20000, env: { PATH: process.env.PATH, HOME: process.env.HOME } });
+  for (const args of [["--attribution", "raven"], ["--attribution=raven"]]) {
+    const result = run(args);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), { jsonrpc: "2.0", id: 1, result: {} });
+    assert.equal(result.stderr, "");
+  }
+  const invalid = run(["--attribution", "-partner"]);
+  assert.equal(invalid.status, 0);
+  assert.deepEqual(JSON.parse(invalid.stdout), { jsonrpc: "2.0", id: 1, result: {} }, "an invalid value never stops the server");
+  assert.match(invalid.stderr, /ignoring --attribution/);
+  const unknown = run(["--bogus"]);
+  assert.equal(unknown.status, 1);
+  assert.match(unknown.stderr, /Usage: project-bootstrap\.mjs \[login\|logout\|--attribution <value>\]/);
+  assert.equal(unknown.stdout, "");
 });

@@ -656,6 +656,50 @@ function safeTenantMetadata(projectRoot) {
   return metadata;
 }
 
+// Dependencies captured once when the server starts. The attribution comes
+// from `--attribution <value>` (or `--attribution=<value>`) in the server's
+// arguments, for catalogs that can pass args but not env, otherwise from
+// COHESIVITY_ATTRIBUTION. A valid flag wins over the environment; an invalid
+// flag is ignored with a warning, like an invalid environment value. It is read
+// here and never again, so a later change to the process environment does not
+// alter what later create_tenant calls record.
+export function startupDependencies(environment = process.env, argv = process.argv.slice(2), warn = (message) => process.stderr.write(message)) {
+  return { attribution: attributionFromArguments(argv, warn) ?? attributionFromEnvironment(environment, warn) };
+}
+
+// Returns the flag's value when valid, null when the flag is present but
+// invalid or missing its value, and undefined when the flag is absent. The
+// last occurrence wins.
+export function attributionFromArguments(argv = process.argv.slice(2), warn = (message) => process.stderr.write(message)) {
+  let present = false;
+  let value;
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
+    if (argument === "--attribution") {
+      present = true;
+      value = argv[index + 1];
+      index++;
+    } else if (typeof argument === "string" && argument.startsWith("--attribution=")) {
+      present = true;
+      value = argument.slice("--attribution=".length);
+    }
+  }
+  if (!present) return undefined;
+  if (typeof value === "string" && ATTRIBUTION_SLUG.test(value)) return value;
+  warn("cohesivity: ignoring --attribution; it must be 1-40 lowercase letters, digits, '.', '_' or '-', starting with a letter or digit.\n");
+  return null;
+}
+
+// True when every argument is an --attribution flag, so the plain server runs.
+function serverArguments(argv) {
+  for (let index = 0; index < argv.length; index++) {
+    if (argv[index] === "--attribution") { index++; continue; }
+    if (argv[index].startsWith("--attribution=")) continue;
+    return false;
+  }
+  return true;
+}
+
 export function attributionFromEnvironment(environment = process.env, warn = (message) => process.stderr.write(message)) {
   const value = environment.COHESIVITY_ATTRIBUTION;
   if (value === undefined || value === "") return null;
@@ -1463,7 +1507,7 @@ export async function handleRequest(request, dependencies = {}) {
   };
 }
 
-export async function runServer(input = process.stdin, output = process.stdout, dependencies = { attribution: attributionFromEnvironment() }) {
+export async function runServer(input = process.stdin, output = process.stdout, dependencies = startupDependencies()) {
   const lines = createInterface({ input, crlfDelay: Infinity, terminal: false });
   for await (const line of lines) {
     if (line.trim() === "") continue;
@@ -1491,12 +1535,13 @@ function launchedDirectly() {
 const isMain = launchedDirectly();
 if (isMain) {
   const command = process.argv[2];
-  const run = command === undefined ? runServer
+  const serving = serverArguments(process.argv.slice(2));
+  const run = serving ? () => runServer()
     : command === "login" && process.argv.length === 3 ? login
     : command === "logout" && process.argv.length === 3 ? logout
-    : () => fail("Usage: project-bootstrap.mjs [login|logout]");
+    : () => fail("Usage: project-bootstrap.mjs [login|logout|--attribution <value>]");
   Promise.resolve().then(run).catch((error) => {
-    if (command !== undefined) process.stderr.write(
+    if (!serving) process.stderr.write(
       `${error instanceof SafeError ? redactString(error.message) : "The command failed safely."}\n`,
     );
     process.exitCode = 1;

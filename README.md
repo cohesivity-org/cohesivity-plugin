@@ -176,12 +176,36 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The current plugin source is 5.1.0; it bundles skill `8927298e3cb3`, whose
-no-MCP fallback runs initializer 0.9.4, and its local MCP reads an optional
-`COHESIVITY_ATTRIBUTION` environment value that it forwards to the quickstart
+The current plugin source is 5.1.0; it bundles skill `da03363df011`, whose
+no-MCP fallback runs initializer 0.9.4, and its local MCP takes an optional
+attribution label (see "Attribution" below) that it forwards to the quickstart
 as `--attribution`. Otherwise it behaves like 5.0.5. Installers keep the plugin
 archive they pin until they are updated. This guidance does not assert
 publication or deployment.
+
+### Attribution
+
+`create_tenant` runs the quickstart, which names the agent that launched the
+local server by walking its own parent processes and records that name with
+the new tenant. An integration that installs the server can tag the tenants it
+creates with a label, and the tenant is then recorded as `<agent>.<label>`
+(for example `claude.raven`). Pass the label as a server argument:
+
+```json
+{ "command": "node", "args": ["<plugin>/mcp/project-bootstrap.mjs", "--attribution", "raven"] }
+```
+
+or set `COHESIVITY_ATTRIBUTION` in the server's environment:
+
+```json
+{ "command": "node", "args": ["<plugin>/mcp/project-bootstrap.mjs"], "env": { "COHESIVITY_ATTRIBUTION": "raven" } }
+```
+
+Use the argument form for catalogs that can pass args but can't set env. The
+label is read once at server start. If both are set, a valid argument wins. The
+value must be 1-40 lowercase letters, digits, dots, underscores, or hyphens,
+starting with a letter or digit. An invalid value is ignored with a warning on
+stderr, and tenant creation proceeds without it.
 
 ## Supported package surfaces
 
@@ -278,11 +302,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@cdad174e92a471e33719ee9452a08d8e38174f09`:
+`cohesivity-org/cohesivity-skill@04243616951d7b3126a8307f6e190681f465b010`:
 
-- skill metadata version: `8927298e3cb3`
-- size: 26,634 bytes
-- SHA-256: `12bd7ec0c138eb6510ac1b549b2d2f797aa5445d9baed59ca1f9046a93c85c5c`
+- skill metadata version: `da03363df011`
+- size: 26,649 bytes
+- SHA-256: `b76be4191f5eaa2eb193faae095e48aa793e2271fe9cdba6d91ef2dcf9bc35b6`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:

@@ -167,12 +167,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "cdad174e92a471e33719ee9452a08d8e38174f09");
-  assert.equal(SKILL_VERSION, "8927298e3cb3");
-  assert.equal(canonical.length, 26634);
+  assert.equal(SKILL_SOURCE_COMMIT, "04243616951d7b3126a8307f6e190681f465b010");
+  assert.equal(SKILL_VERSION, "da03363df011");
+  assert.equal(canonical.length, 26649);
   assert.equal(
     SKILL_SHA256,
-    "12bd7ec0c138eb6510ac1b549b2d2f797aa5445d9baed59ca1f9046a93c85c5c",
+    "b76be4191f5eaa2eb193faae095e48aa793e2271fe9cdba6d91ef2dcf9bc35b6",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -954,7 +954,7 @@ test("README documents the Hermes owner override without an unstable hash", () =
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.4/);
   assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.0\/`/);
-  assert.match(readme, /The current plugin source is 5\.1\.0; it bundles skill `8927298e3cb3`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
+  assert.match(readme, /The current plugin source is 5\.1\.0; it bundles skill `da03363df011`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
