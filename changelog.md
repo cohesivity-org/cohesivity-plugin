@@ -886,3 +886,11 @@ coordinated-release line names plugin 5.1.0 and initializer 0.9.4.
 `build-packages.mjs --check` passes; 77 of 78 tests pass, the archive test
 needs the step-two manifest stamp from this commit.
 
+
+## 2026-10-16 — Stamp the 5.1.0 install manifest
+
+Pin source/archive commit `09644bb4d7d58853d613cd07f6dcb9f49c8c003a` in the
+10607-byte manifest (SHA-256
+`24fe360d5a40c32ffd6e8300ee3768aab5cdcbe5d42691ca8fcb79fa05319389`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit.
