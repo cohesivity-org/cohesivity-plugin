@@ -5,7 +5,8 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, st
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { callTool, handleRequest, login, logout, runQuickstartProcess, secureEnvironment, validateOAuthCallback } from "../mcp/project-bootstrap.mjs";
+import { attributionFromEnvironment, callTool, handleRequest, login, logout, runQuickstartProcess, runServer, secureEnvironment, validateOAuthCallback } from "../mcp/project-bootstrap.mjs";
+import { PassThrough } from "node:stream";
 
 const script = "#!/bin/bash\necho mocked quickstart\n";
 const accessToken = `mcp_at_${"a".repeat(43)}`;
@@ -525,4 +526,74 @@ test("logout revokes and removes a saved sign-in for the retired resource", asyn
     assert.equal(revoked, 1);
     assert.equal(existsSync(path), false);
   }
+});
+
+test("COHESIVITY_ATTRIBUTION is read once, validated with the genesis slug rule, and ignored with a warning when invalid", () => {
+  const warnings = [];
+  const warn = (message) => warnings.push(message);
+  assert.equal(attributionFromEnvironment({}, warn), null);
+  assert.equal(attributionFromEnvironment({ COHESIVITY_ATTRIBUTION: "" }, warn), null);
+  assert.equal(warnings.length, 0);
+  for (const valid of ["gh-npcpy", "gh-vellum-assistant", "a", "x.y_z-1", "z".repeat(40)]) {
+    assert.equal(attributionFromEnvironment({ COHESIVITY_ATTRIBUTION: valid }, warn), valid);
+  }
+  for (const invalid of ["GH-npcpy", "-leading", ".leading", "has space", "semi;colon", "$(id)", "z".repeat(41), "gh/npcpy"]) {
+    assert.equal(attributionFromEnvironment({ COHESIVITY_ATTRIBUTION: invalid }, warn), null, invalid);
+  }
+  assert.equal(warnings.length, 8);
+  assert.ok(warnings.every((message) => /COHESIVITY_ATTRIBUTION/.test(message) && !/\$\(id\)|semi;colon/.test(message)), "the rejected value is never echoed");
+});
+
+test("create forwards the attribution suffix to quickstart, after any account arguments", async (t) => {
+  const { project, home, env } = fixture(t);
+  const seen = [];
+  await callTool("create_tenant", { project_root: project, confirmed: true }, {
+    env, attribution: "gh-npcpy", fetch: async () => new Response(script),
+    runQuickstart: async (_text, args) => { seen.push(args); credentials(project); },
+  });
+  assert.deepEqual(seen[0], ["--attribution", "gh-npcpy"]);
+
+  rmSync(join(project, ".cohesivity"));
+  authFile(home);
+  await callTool("create_tenant", { project_root: project, confirmed: true }, {
+    env, attribution: "gh-npcpy", fetch: async () => new Response(script),
+    runQuickstart: async (_text, args) => { seen.push(args); credentials(project, "claimed"); },
+  });
+  assert.equal(seen[1][0], "--account-auth-file");
+  assert.equal(seen[1][2], "--idempotency-key");
+  assert.deepEqual(seen[1].slice(4), ["--attribution", "gh-npcpy"]);
+});
+
+test("create passes no harness or attribution arguments by default; quickstart measures the harness itself", async (t) => {
+  const { project, env } = fixture(t);
+  let seen;
+  await callTool("create_tenant", { project_root: project, confirmed: true }, {
+    env: { ...env, COHESIVITY_ATTRIBUTION: "gh-from-call-env" }, fetch: async () => new Response(script),
+    runQuickstart: async (_text, args) => { seen = args; credentials(project); },
+  });
+  assert.deepEqual(seen, [], "attribution comes from server start, never from per-call environment");
+});
+
+test("an invalid attribution handed to create is refused before quickstart runs", async (t) => {
+  const { project, env } = fixture(t);
+  await assert.rejects(callTool("create_tenant", { project_root: project, confirmed: true }, {
+    env, attribution: "Bad Value", fetch: async () => assert.fail("must not fetch"),
+    runQuickstart: () => assert.fail("must not run"),
+  }), /attribution/);
+});
+
+test("runServer threads the start-time attribution through to create_tenant", async (t) => {
+  const { project, env } = fixture(t);
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let seen;
+  const done = runServer(input, output, {
+    env, attribution: "gh-npcpy", fetch: async () => new Response(script),
+    runQuickstart: async (_text, args) => { seen = args; credentials(project); },
+  });
+  input.end(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "create_tenant", arguments: { project_root: project, confirmed: true } } })}\n`);
+  await done;
+  const reply = JSON.parse(output.read().toString());
+  assert.equal(reply.result.structuredContent.tenant_id, "swift-fox-running");
+  assert.deepEqual(seen, ["--attribution", "gh-npcpy"]);
 });

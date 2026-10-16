@@ -63,7 +63,7 @@ confirmation requirements.
 
 Node-less clients do not run this local component, and this package does not
 claim or generate native binary support. When no MCP is available, the skill
-pins the exact `@cohesivity/init@0.9.3` package instead of mutable
+pins the exact `@cohesivity/init@0.9.4` package instead of mutable
 remote shell code. With the user's explicit authorization, either bootstrap
 path can create a free ephemeral tenant that expires after 72 hours unless
 claimed.
@@ -176,10 +176,11 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The current plugin source is 5.0.5; it bundles skill `9061ab1e993d`, whose
-no-MCP fallback runs initializer 0.9.3, and otherwise behaves like 5.0.4, which
-publishes `provision_resource` input as one flat object. Installers keep the
-plugin archive they pin until they are updated. This guidance does not assert
+The current plugin source is 5.1.0; it bundles skill `8927298e3cb3`, whose
+no-MCP fallback runs initializer 0.9.4, and its local MCP reads an optional
+`COHESIVITY_ATTRIBUTION` environment value that it forwards to the quickstart
+as `--attribution`. Otherwise it behaves like 5.0.5. Installers keep the plugin
+archive they pin until they are updated. This guidance does not assert
 publication or deployment.
 
 ## Supported package surfaces
@@ -277,11 +278,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@987771e1f9c3977b2ca04e8c3238e33e069816f7`:
+`cohesivity-org/cohesivity-skill@cdad174e92a471e33719ee9452a08d8e38174f09`:
 
-- skill metadata version: `9061ab1e993d`
-- size: 25,773 bytes
-- SHA-256: `803520edc2bcc05b58e281c8ad2b11d473aa3823479a7a1713eecde958f9cfab`
+- skill metadata version: `8927298e3cb3`
+- size: 26,634 bytes
+- SHA-256: `12bd7ec0c138eb6510ac1b549b2d2f797aa5445d9baed59ca1f9046a93c85c5c`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -299,7 +300,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v5.0.5/`; existing
+Current versioned installer inputs live under `artifacts/v5.1.0/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's

@@ -50,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "5.0.5";
+export const SERVER_VERSION = "5.1.0";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
@@ -63,6 +63,13 @@ const MAX_GITIGNORE_BYTES = 1024 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_FEEDBACK_LENGTH = 20_000;
 const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
+// Optional attribution suffix for tenants this server creates, read once at
+// server start from COHESIVITY_ATTRIBUTION (MCP clients can set env in their
+// server config). It is forwarded to the quickstart as `--attribution <value>`,
+// which appends it to the harness the quickstart measures from its own process
+// ancestry, so genesis records `<harness>.<value>`. Same slug rule genesis
+// applies to the harness name.
+const ATTRIBUTION_SLUG = /^[a-z0-9][a-z0-9._-]{0,39}$/u;
 const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/i;
 const MANAGEMENT_OUTPUT_FIELDS = Object.freeze({
   claim: ["approval_url"],
@@ -649,6 +656,14 @@ function safeTenantMetadata(projectRoot) {
   return metadata;
 }
 
+export function attributionFromEnvironment(environment = process.env, warn = (message) => process.stderr.write(message)) {
+  const value = environment.COHESIVITY_ATTRIBUTION;
+  if (value === undefined || value === "") return null;
+  if (typeof value === "string" && ATTRIBUTION_SLUG.test(value)) return value;
+  warn("cohesivity: ignoring COHESIVITY_ATTRIBUTION; it must be 1-40 lowercase letters, digits, '.', '_' or '-', starting with a letter or digit.\n");
+  return null;
+}
+
 export function secureEnvironment(environment = process.env) {
   const result = {};
   for (const name of ["HOME", "PATH", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "CODEX_HOME", "HERMES_HOME"]) {
@@ -851,6 +866,8 @@ function validateProjectCredentials(projectRoot) {
 
 async function runProjectQuickstart(projectRoot, dependencies) {
   const environment = dependencies.env ?? process.env;
+  const attribution = dependencies.attribution ?? null;
+  if (attribution !== null && !ATTRIBUTION_SLUG.test(attribution)) fail("The configured attribution is invalid.");
   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
   return withStateLock(projectRoot, ".cohesivity-bootstrap.lock", async () => {
     let existingProject = false;
@@ -879,6 +896,7 @@ async function runProjectQuickstart(projectRoot, dependencies) {
         writeFileSync(headerPath, `${["Authorization:", "Bearer", account.access_token].join(" ")}\n`, { flag: "wx", mode: 0o600 });
         args.push("--account-auth-file", headerPath, "--idempotency-key", key);
       }
+      if (attribution) args.push("--attribution", attribution);
       await (dependencies.runQuickstart ?? runQuickstartProcess)(script, args, { cwd: projectRoot, env: secureEnvironment(environment) });
       validateProjectCredentials(projectRoot);
       ensureCredentialIgnored(projectRoot);
@@ -1445,7 +1463,7 @@ export async function handleRequest(request, dependencies = {}) {
   };
 }
 
-export async function runServer(input = process.stdin, output = process.stdout) {
+export async function runServer(input = process.stdin, output = process.stdout, dependencies = { attribution: attributionFromEnvironment() }) {
   const lines = createInterface({ input, crlfDelay: Infinity, terminal: false });
   for await (const line of lines) {
     if (line.trim() === "") continue;
@@ -1456,7 +1474,7 @@ export async function runServer(input = process.stdin, output = process.stdout) 
       output.write(`${JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })}\n`);
       continue;
     }
-    const response = await handleRequest(request);
+    const response = await handleRequest(request, dependencies);
     if (response !== undefined && request.id !== undefined) output.write(`${JSON.stringify(response)}\n`);
   }
 }
