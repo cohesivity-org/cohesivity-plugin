@@ -941,3 +941,29 @@ Pin source/archive commit `71da89ee2ab898ad05f8ba94ebfecfd0b0be7ce3` in the
 `a327adea291c51dfa1f7da64255a8a59a2b0c4722e9866e4a24400e21a484f74`). Only the
 manifest and changelog changed; the archives are byte-identical to the
 previous commit. `npm run check` passes and all 81 tests pass.
+
+## 2026-11-18 — Bundle the skill that says Inbox needs a claimed tenant; plugin 5.1.1
+
+`cohesivity-org/cohesivity#571` makes Inbox claimed-only. Rebundles skill
+mirror `cohesivity-org/cohesivity-skill@7ff5718c` (cohesivity-skill#20,
+metadata version `79ab7f370f1f`, 26,605 bytes, SHA-256 `b3044ff7…8a8f`).
+Its Inbox sentence now says Inbox requires a claimed tenant and ephemeral
+tenants get `403 tenant_must_be_claimed`. No other skill text changed, so the
+no-MCP fallback still runs initializer 0.9.4.
+
+The local MCP is unchanged from 5.1.0 apart from its version string. New
+`artifacts/v5.1.1` archives; `artifacts/v5.1.0` and earlier are unchanged
+because 5.1.0 is already pinned by published installers.
+
+### What changed
+
+- `skills/cohesivity/SKILL.md` and every generated wrapper copy carry the new
+  skill. `scripts/build-packages.mjs`, `test/packaging.test.mjs`, and the
+  README pin it.
+- Version 5.1.1 in `mcp/project-bootstrap.mjs`, `package.json`,
+  `package-lock.json`, and the generated manifests.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.

@@ -68,7 +68,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.1.0");
+  assert.equal(VERSION, "5.1.1");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -167,12 +167,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "04243616951d7b3126a8307f6e190681f465b010");
-  assert.equal(SKILL_VERSION, "da03363df011");
-  assert.equal(canonical.length, 26649);
+  assert.equal(SKILL_SOURCE_COMMIT, "7ff5718c37376305b6b825b3cec54bbbb07c80a6");
+  assert.equal(SKILL_VERSION, "79ab7f370f1f");
+  assert.equal(canonical.length, 26605);
   assert.equal(
     SKILL_SHA256,
-    "b76be4191f5eaa2eb193faae095e48aa793e2271fe9cdba6d91ef2dcf9bc35b6",
+    "b3044ff743686154751a5e206851504ba60b352d1d81360bed2f98581c218a8f",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -953,8 +953,8 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
   assert.match(readme, /@cohesivity\/init@0\.9\.4/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.0\/`/);
-  assert.match(readme, /The current plugin source is 5\.1\.0; it bundles skill `da03363df011`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.1\/`/);
+  assert.match(readme, /The current plugin source is 5\.1\.1; it bundles skill `79ab7f370f1f`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

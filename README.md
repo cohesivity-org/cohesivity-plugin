@@ -176,11 +176,12 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The current plugin source is 5.1.0; it bundles skill `da03363df011`, whose
-no-MCP fallback runs initializer 0.9.4, and its local MCP takes an optional
+The current plugin source is 5.1.1; it bundles skill `79ab7f370f1f`, whose
+no-MCP fallback runs initializer 0.9.4 and which says Inbox needs a claimed
+tenant. Otherwise it behaves like 5.1.0, whose local MCP takes an optional
 attribution label (see "Attribution" below) that it forwards to the quickstart
-as `--attribution`. Otherwise it behaves like 5.0.5. Installers keep the plugin
-archive they pin until they are updated. This guidance does not assert
+as `--attribution`. Installers keep the plugin archive they pin until they are
+updated. This guidance does not assert
 publication or deployment.
 
 ### Attribution
@@ -302,11 +303,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@04243616951d7b3126a8307f6e190681f465b010`:
+`cohesivity-org/cohesivity-skill@7ff5718c37376305b6b825b3cec54bbbb07c80a6`:
 
-- skill metadata version: `da03363df011`
-- size: 26,649 bytes
-- SHA-256: `b76be4191f5eaa2eb193faae095e48aa793e2271fe9cdba6d91ef2dcf9bc35b6`
+- skill metadata version: `79ab7f370f1f`
+- size: 26,605 bytes
+- SHA-256: `b3044ff743686154751a5e206851504ba60b352d1d81360bed2f98581c218a8f`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:
@@ -324,7 +325,7 @@ rebuilds the checked-in archives using the manifest's existing source stamp.
 and tree digests without writing and fails on any stale or unexpected generated
 artifact.
 
-Current versioned installer inputs live under `artifacts/v5.1.0/`; existing
+Current versioned installer inputs live under `artifacts/v5.1.1/`; existing
 `artifacts/v4.0.0/` and `artifacts/v4.0.1/` inputs remain immutable. Each client archive
 uses sorted portable tar entries, fixed modes/owners/timestamps, and a
 deterministic gzip stream. `install-manifest.v1.json` records each archive's
