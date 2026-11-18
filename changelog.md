@@ -967,3 +967,13 @@ because 5.1.0 is already pinned by published installers.
 
 `npm run check` and `npm test` results are recorded in the stamp entry that
 follows.
+
+## 2026-11-18 — Stamp the 5.1.1 install manifest
+
+Pin source/archive commit `a61682935f3f4ac5d41ebd1e9cc8b33e31711a38` in the
+10607-byte manifest (SHA-256
+`020a0b262a263e6f87148ddd4d04a207bc8c284d0d7a18818cd4d2e50ed3e4e2`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass (run with
+`TMPDIR` on a real path, since macOS's `/var` temp symlink trips the
+symlinked-state guard).
