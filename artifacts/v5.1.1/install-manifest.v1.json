@@ -4,14 +4,14 @@
   "version": "5.1.1",
   "source": {
     "repository": "https://github.com/cohesivity-org/cohesivity-plugin",
-    "commit": "16a52adeb86564e2e2b159b4f83279655f076aa7",
-    "immutable_base_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1"
+    "commit": "72a71942649e356ae76ec1a2813739e49709b320",
+    "immutable_base_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1"
   },
   "packages": [
     {
       "client": "portable",
       "archive": "cohesivity-portable-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-portable-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-portable-5.1.1.tar.gz",
       "size": 26861,
       "sha256": "f158fcf414e0a6271826950a33d7c4c80c0c57c95fc9f7ede3e0f7a11dc8bb3a",
       "tree_sha256": "1295fed1d09a6d1c9d205a10908edd4ba79bdbe7afe9409eec1e46426e736ebe",
@@ -51,7 +51,7 @@
     {
       "client": "claude",
       "archive": "cohesivity-claude-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-claude-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-claude-5.1.1.tar.gz",
       "size": 27185,
       "sha256": "8e38ba677f7243e1acb58867f8bb873d2aee5f6a605009b5012f6666f673d0a2",
       "tree_sha256": "3fafce8ad6cf96b25c540997f3210b1685922c21511c96f58bd2e73f7f11cdb2",
@@ -91,7 +91,7 @@
     {
       "client": "gemini",
       "archive": "cohesivity-gemini-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-gemini-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-gemini-5.1.1.tar.gz",
       "size": 26651,
       "sha256": "a285d32eb53fa2dec6a52fb3588acc3b58e9ba05a4ebb38aa73153f9803e6526",
       "tree_sha256": "724f05a25f15a5393f7041122c1c74ab009c7d383c6a079e519899e41a49cbd6",
@@ -125,7 +125,7 @@
     {
       "client": "antigravity",
       "archive": "cohesivity-antigravity-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-antigravity-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-antigravity-5.1.1.tar.gz",
       "size": 26653,
       "sha256": "6a110b2a8f5de57d2e459324cd9025df291e4a8d3bbf94e2df21cebd1d54a2c5",
       "tree_sha256": "b224fca9295c020d6b0b8a0b0c9ab3363c4fe618ee496449b2fb6adfa22c2bfa",
@@ -165,7 +165,7 @@
     {
       "client": "openai",
       "archive": "cohesivity-openai-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-openai-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-openai-5.1.1.tar.gz",
       "size": 28002,
       "sha256": "6299fc3e1f2eeff2363169d7ad3d952fdacdd10039ecd43e13e153a694c25de3",
       "tree_sha256": "94c2d5e217f27abedf435ac592c6cf5cda7280acc06936402522a485866953a9",
@@ -223,7 +223,7 @@
     {
       "client": "codex",
       "archive": "cohesivity-codex-5.1.1.tar.gz",
-      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/16a52adeb86564e2e2b159b4f83279655f076aa7/artifacts/v5.1.1/cohesivity-codex-5.1.1.tar.gz",
+      "immutable_url": "https://raw.githubusercontent.com/cohesivity-org/cohesivity-plugin/72a71942649e356ae76ec1a2813739e49709b320/artifacts/v5.1.1/cohesivity-codex-5.1.1.tar.gz",
       "size": 28162,
       "sha256": "7f3fbb428cc5837848060600c093e1704d57b4dead763085d4c9fc9ef0940656",
       "tree_sha256": "102950e365fb1c229c863e9f81932d58e2781fd648bac76777df232f0faf063f",
