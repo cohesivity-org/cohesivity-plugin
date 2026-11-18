@@ -68,7 +68,7 @@ test("local MCP initialization reports the packaged release version", async () =
   });
   assert.equal(response.result.serverInfo.version, VERSION);
   assert.equal(json("package.json").version, VERSION);
-  assert.equal(VERSION, "5.1.0");
+  assert.equal(VERSION, "5.1.1");
 });
 
 test("Claude skill carries marketplace metadata without changing the portable skill", () => {
@@ -167,12 +167,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "04243616951d7b3126a8307f6e190681f465b010");
-  assert.equal(SKILL_VERSION, "da03363df011");
-  assert.equal(canonical.length, 26649);
+  assert.equal(SKILL_SOURCE_COMMIT, "d37486afed384971bb5dc6eb8ad2d53da3b4c444");
+  assert.equal(SKILL_VERSION, "19149335569c");
+  assert.equal(canonical.length, 26524);
   assert.equal(
     SKILL_SHA256,
-    "b76be4191f5eaa2eb193faae095e48aa793e2271fe9cdba6d91ef2dcf9bc35b6",
+    "9c408d62c8d270b1776c9dccb00951a3fb9ad1f098f0790c006d79225e3c9c78",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -215,8 +215,8 @@ test("every skill documents exactly the five tenant MCP tools and fails closed",
     assert.match(operations, /Exclude personal information and secrets/);
     assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.4/);
-    assert.doesNotMatch(skill, /@cohesivity\/init@0\.9\.3/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.5/);
+    assert.doesNotMatch(skill, /@cohesivity\/init@0\.9\.4/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -952,9 +952,9 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.9\.4/);
-  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.0\/`/);
-  assert.match(readme, /The current plugin source is 5\.1\.0; it bundles skill `da03363df011`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
+  assert.match(readme, /@cohesivity\/init@0\.9\.5/);
+  assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.1\/`/);
+  assert.match(readme, /The current plugin source is 5\.1\.1; it bundles skill `19149335569c`, whose\nno-MCP fallback runs initializer 0\.9\.5/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));

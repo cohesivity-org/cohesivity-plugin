@@ -941,3 +941,90 @@ Pin source/archive commit `71da89ee2ab898ad05f8ba94ebfecfd0b0be7ce3` in the
 `a327adea291c51dfa1f7da64255a8a59a2b0c4722e9866e4a24400e21a484f74`). Only the
 manifest and changelog changed; the archives are byte-identical to the
 previous commit. `npm run check` passes and all 81 tests pass.
+
+## 2026-11-18 — Bundle the skill that says Inbox needs a claimed tenant; plugin 5.1.1
+
+`cohesivity-org/cohesivity#571` makes Inbox claimed-only. Rebundles skill
+mirror `cohesivity-org/cohesivity-skill@7ff5718c` (cohesivity-skill#20,
+metadata version `79ab7f370f1f`, 26,605 bytes, SHA-256 `b3044ff7…8a8f`).
+Its Inbox sentence now says Inbox requires a claimed tenant and ephemeral
+tenants get `403 tenant_must_be_claimed`. No other skill text changed, so the
+no-MCP fallback still runs initializer 0.9.4.
+
+The local MCP is unchanged from 5.1.0 apart from its version string. New
+`artifacts/v5.1.1` archives; `artifacts/v5.1.0` and earlier are unchanged
+because 5.1.0 is already pinned by published installers.
+
+### What changed
+
+- `skills/cohesivity/SKILL.md` and every generated wrapper copy carry the new
+  skill. `scripts/build-packages.mjs`, `test/packaging.test.mjs`, and the
+  README pin it.
+- Version 5.1.1 in `mcp/project-bootstrap.mjs`, `package.json`,
+  `package-lock.json`, and the generated manifests.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.
+
+## 2026-11-18 — Stamp the 5.1.1 install manifest
+
+Pin source/archive commit `a61682935f3f4ac5d41ebd1e9cc8b33e31711a38` in the
+10607-byte manifest (SHA-256
+`020a0b262a263e6f87148ddd4d04a207bc8c284d0d7a18818cd4d2e50ed3e4e2`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass (run with
+`TMPDIR` on a real path, since macOS's `/var` temp symlink trips the
+symlinked-state guard).
+
+## 2026-11-18 — Rebundle skill 7fe8262e7600 (still 5.1.1)
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@e775b2ad`
+(metadata version `7fe8262e7600`, 26,605 bytes, SHA-256 `9358d58a…eba9`).
+Its no-MCP fallback now pins `@cohesivity/init@0.9.5`, and its
+coordinated-release line names plugin and local MCP server 5.1.1 and
+initializer 0.9.5. The Inbox sentence from the previous entry is unchanged,
+and the README fallback references follow. Still 5.1.1: it is not released
+yet, so the unshipped `artifacts/v5.1.1/` archives and manifest are
+regenerated in place, as was done for 5.1.0. Earlier artifacts are unchanged.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.
+
+## 2026-11-18 — Restamp the 5.1.1 install manifest
+
+Pin source/archive commit `16a52adeb86564e2e2b159b4f83279655f076aa7` in the
+10607-byte manifest (SHA-256
+`1fc5d06355df7b86fa757a20bd2d2f61229de90f10a747a77fb4ef3d39d34cba`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass (run with
+`TMPDIR` on a real path, as before).
+
+## 2026-11-18 — Rebundle skill 19149335569c (still 5.1.1)
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@d37486af`
+(metadata version `19149335569c`, 26,524 bytes, SHA-256 `9c408d62…9c78`).
+The skill now names the offerings that need a claimed tenant (`openai-api`,
+`ai-gateway`, `deepgram-api`, `exa-api`, `openweather-api`,
+`google-geocoding-api`, `steel-browser`, `inbox`), says Steel Browser is
+available to every claimed tenant, drops the ephemeral Steel identity budget,
+and says ephemeral tenants have no access to those offerings. Still 5.1.1,
+not released yet, so the unshipped `artifacts/v5.1.1/` archives and manifest
+are regenerated in place. Earlier artifacts are unchanged.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.
+
+## 2026-11-18 — Restamp the 5.1.1 install manifest
+
+Pin source/archive commit `72a71942649e356ae76ec1a2813739e49709b320` in the
+10607-byte manifest (SHA-256
+`2b79a33f0d91be114f7319a6120ec85dc3618a6fee33b854ff97f95627652eba`). Only the
+manifest and changelog changed; the archives are byte-identical to the
+previous commit. `npm run check` passes and all 81 tests pass (run with
+`TMPDIR` on a real path, as before).
