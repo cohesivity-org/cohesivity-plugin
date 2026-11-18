@@ -176,13 +176,13 @@ an account session that owns the claimed tenant. The URL and an MCP bearer
 alone cannot download the file. Guest access ends after claim; reconnect with
 the owning account.
 
-The current plugin source is 5.1.1; it bundles skill `7fe8262e7600`, whose
-no-MCP fallback runs initializer 0.9.5 and which says Inbox needs a claimed
-tenant. Otherwise it behaves like 5.1.0, whose local MCP takes an optional
-attribution label (see "Attribution" below) that it forwards to the quickstart
-as `--attribution`. Installers keep the plugin archive they pin until they are
-updated. This guidance does not assert
-publication or deployment.
+The current plugin source is 5.1.1; it bundles skill `19149335569c`, whose
+no-MCP fallback runs initializer 0.9.5 and which says Inbox, Steel Browser,
+and the paid provider APIs need a claimed tenant. Otherwise it behaves like
+5.1.0, whose local MCP takes an optional attribution label (see "Attribution"
+below) that it forwards to the quickstart as `--attribution`. Installers keep
+the plugin archive they pin until they are updated. This guidance does not
+assert publication or deployment.
 
 ### Attribution
 
@@ -303,11 +303,11 @@ required `serverUrl` key. Do not copy that manifest over the repository root.
 ## Canonical skill, wrappers, and install artifacts
 
 `skills/cohesivity/SKILL.md` is pinned byte-for-byte to
-`cohesivity-org/cohesivity-skill@e775b2ad4994883a652a1e43d6dc8c681cfdfe16`:
+`cohesivity-org/cohesivity-skill@d37486afed384971bb5dc6eb8ad2d53da3b4c444`:
 
-- skill metadata version: `7fe8262e7600`
-- size: 26,605 bytes
-- SHA-256: `9358d58a9d7432da36afc6a716b299899f35e9b562e7ed58ba099f33b832eba9`
+- skill metadata version: `19149335569c`
+- size: 26,524 bytes
+- SHA-256: `9c408d62c8d270b1776c9dccb00951a3fb9ad1f098f0790c006d79225e3c9c78`
 
 The root skill is the source for every generated wrapper copy. Rebuild and
 validate with dependency-free Node commands:

@@ -1002,3 +1002,20 @@ Pin source/archive commit `16a52adeb86564e2e2b159b4f83279655f076aa7` in the
 manifest and changelog changed; the archives are byte-identical to the
 previous commit. `npm run check` passes and all 81 tests pass (run with
 `TMPDIR` on a real path, as before).
+
+## 2026-11-18 — Rebundle skill 19149335569c (still 5.1.1)
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@d37486af`
+(metadata version `19149335569c`, 26,524 bytes, SHA-256 `9c408d62…9c78`).
+The skill now names the offerings that need a claimed tenant (`openai-api`,
+`ai-gateway`, `deepgram-api`, `exa-api`, `openweather-api`,
+`google-geocoding-api`, `steel-browser`, `inbox`), says Steel Browser is
+available to every claimed tenant, drops the ephemeral Steel identity budget,
+and says ephemeral tenants have no access to those offerings. Still 5.1.1,
+not released yet, so the unshipped `artifacts/v5.1.1/` archives and manifest
+are regenerated in place. Earlier artifacts are unchanged.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.
