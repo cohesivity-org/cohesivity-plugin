@@ -977,3 +977,19 @@ manifest and changelog changed; the archives are byte-identical to the
 previous commit. `npm run check` passes and all 81 tests pass (run with
 `TMPDIR` on a real path, since macOS's `/var` temp symlink trips the
 symlinked-state guard).
+
+## 2026-11-18 — Rebundle skill 7fe8262e7600 (still 5.1.1)
+
+Rebundles skill mirror `cohesivity-org/cohesivity-skill@e775b2ad`
+(metadata version `7fe8262e7600`, 26,605 bytes, SHA-256 `9358d58a…eba9`).
+Its no-MCP fallback now pins `@cohesivity/init@0.9.5`, and its
+coordinated-release line names plugin and local MCP server 5.1.1 and
+initializer 0.9.5. The Inbox sentence from the previous entry is unchanged,
+and the README fallback references follow. Still 5.1.1: it is not released
+yet, so the unshipped `artifacts/v5.1.1/` archives and manifest are
+regenerated in place, as was done for 5.1.0. Earlier artifacts are unchanged.
+
+### Verification
+
+`npm run check` and `npm test` results are recorded in the stamp entry that
+follows.

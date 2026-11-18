@@ -167,12 +167,12 @@ test("root remains an Agent Plugins 1.0 package with a Claude marketplace entry"
 
 test("canonical skill is pinned and every portable package copy is byte-identical", () => {
   const canonical = readFileSync("skills/cohesivity/SKILL.md");
-  assert.equal(SKILL_SOURCE_COMMIT, "7ff5718c37376305b6b825b3cec54bbbb07c80a6");
-  assert.equal(SKILL_VERSION, "79ab7f370f1f");
+  assert.equal(SKILL_SOURCE_COMMIT, "e775b2ad4994883a652a1e43d6dc8c681cfdfe16");
+  assert.equal(SKILL_VERSION, "7fe8262e7600");
   assert.equal(canonical.length, 26605);
   assert.equal(
     SKILL_SHA256,
-    "b3044ff743686154751a5e206851504ba60b352d1d81360bed2f98581c218a8f",
+    "9358d58a9d7432da36afc6a716b299899f35e9b562e7ed58ba099f33b832eba9",
   );
   assert.equal(
     createHash("sha256").update(canonical).digest("hex"),
@@ -215,8 +215,8 @@ test("every skill documents exactly the five tenant MCP tools and fails closed",
     assert.match(operations, /Exclude personal information and secrets/);
     assert.match(operations, /deployment, billing, credential rotation, and destruction, are not covered by these tools/);
     assert.match(operations, /use direct HTTP with the management key/);
-    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.4/);
-    assert.doesNotMatch(skill, /@cohesivity\/init@0\.9\.3/);
+    assert.match(skill, /npx --yes @cohesivity\/init@0\.9\.5/);
+    assert.doesNotMatch(skill, /@cohesivity\/init@0\.9\.4/);
     assert.doesNotMatch(skill, /@cohesivity\/init@0\.6\.6/);
   }
 });
@@ -952,9 +952,9 @@ test("every remote wrapper preserves the exact unified MCP URL", () => {
 
 test("README documents the Hermes owner override without an unstable hash", () => {
   const readme = readFileSync("README.md", "utf8");
-  assert.match(readme, /@cohesivity\/init@0\.9\.4/);
+  assert.match(readme, /@cohesivity\/init@0\.9\.5/);
   assert.match(readme, /Current versioned installer inputs live under `artifacts\/v5\.1\.1\/`/);
-  assert.match(readme, /The current plugin source is 5\.1\.1; it bundles skill `79ab7f370f1f`, whose\nno-MCP fallback runs initializer 0\.9\.4/);
+  assert.match(readme, /The current plugin source is 5\.1\.1; it bundles skill `7fe8262e7600`, whose\nno-MCP fallback runs initializer 0\.9\.5/);
   assert.ok(readme.includes(SKILL_SOURCE_COMMIT));
   assert.ok(readme.includes(SKILL_VERSION));
   assert.ok(readme.includes(SKILL_SHA256));
